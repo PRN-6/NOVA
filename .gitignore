@@ -1,0 +1,72 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Python Packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type Checkers
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Audio Files
+*.wav
+*.mp3
+*.flac
+
+# Temporary Files
+temp/
+tmp/
+
+# Database
+*.db
+*.sqlite3
+
+# AI Models (downloaded locally)
+models/
+checkpoints/
+
+# Cache
+.cache/
+
+# Generated Files
+output/
+outputs/
+
+# Secrets
+secrets.json
+config.local.json
