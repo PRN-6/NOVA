@@ -17,8 +17,6 @@ def record_audio(filename="record.wav",duration=10):
         device=device
     )
 
-   
-
     sd.wait()
 
     print("Maximum value:", np.max(audio))
