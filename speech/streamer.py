@@ -68,7 +68,7 @@ class SpeechStreamer:
                         if len(audio_buffer) > 0:
                             audio_buffer.clear()
                             logger.debug("VAD threshold met: clearing audio buffer")
-                        continue
+                            continue
 
                     audio_buffer.append(chunk)
                     full_audio = np.concatenate(audio_buffer).flatten()
