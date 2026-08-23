@@ -1,4 +1,13 @@
+import os
 import sys
+
+# Add CUDA 12 runtime DLL paths so ctranslate2 can find cublas64_12.dll
+_venv = os.path.join(os.path.dirname(__file__), ".venv", "Lib", "site-packages", "nvidia")
+for _pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
+    _dll_path = os.path.join(_venv, _pkg, "bin")
+    if os.path.isdir(_dll_path):
+        os.add_dll_directory(_dll_path)
+        os.environ["PATH"] = _dll_path + os.pathsep + os.environ["PATH"]
 import logging
 from speech.streamer import SpeechStreamer
 from actions.executor import execute_system_command

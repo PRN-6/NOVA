@@ -1,3 +1,4 @@
+from openwakeword.model import Model
 import logging
 import config
 from faster_whisper import WhisperModel
@@ -14,6 +15,10 @@ class SpeechStreamer:
         self.sample_rate = config.SAMPLE_RATE
         self.silence_threshold = config.SILENCE_THRESHOLD
         self.silence_duration_chunks = config.SILENCE_DURATION_CHUNKS
+        self.is_active = False
+
+        logger.info(f"Loading wake word model: {config.WAKE_WORD_MODEL}")
+        self.oww_model = Model(wakeword_models=[config.WAKE_WORD_MODEL],inference_framework="onnx")
 
         logger.info(f"Loading whisper model {config.WHISPER_MODEL_SIZE} on {config.WHISPER_DEVICE}")
 
@@ -55,6 +60,21 @@ class SpeechStreamer:
                 while self.stream.active:
                     chunk = self.audio_queue.get()
 
+                    if not self.is_active:
+                        oww_chunk = (chunk.flatten() * 32767).astype(np.int16)
+
+                        prediction = self.oww_model.predict(oww_chunk)
+
+                        if prediction[config.WAKE_WORD_MODEL] > config.WAKE_WORD_THRESHOLD:
+                            logger.info(f"wake word '{config.WAKE_WORD_MODEL}'dected! waking")
+                            
+                            # Play an auditory beep so the user knows it's listening
+                            import winsound
+                            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+
+                            self.is_active = True
+                        continue
+
                     #compute root mean square for energy threshold detection
                     volume = np.sqrt(np.mean(chunk**2))
 
@@ -92,9 +112,16 @@ class SpeechStreamer:
                     if text:
                         command_executed = on_text_collback(text)
 
-                        if command_executed:
-                            audio_buffer.clear()
-                            silence_counter = 0
+                        audio_buffer.clear()
+                        silence_counter = 0
+
+                        logger.info("command finished going back to sleep")
+                        
+                        # Clear the background audio queue to prevent instant false-wakeups from old audio
+                        with self.audio_queue.mutex:
+                            self.audio_queue.queue.clear()
+                            
+                        self.is_active = False
 
         except Exception as e:
             logger.error(f"Error in streaming pipeline: {e}")

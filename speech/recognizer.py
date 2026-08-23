@@ -13,7 +13,7 @@ def recognize(filename: str) -> str:
         beam_size=5,
         language="en",
         vad_filter=True,
-        initial_prompt="Nova, Chrome, WhatsApp, Outlook, Excel, VS Code, GitHub"
+        initial_prompt="Orion, Chrome, WhatsApp, Outlook, Excel, VS Code, GitHub"
     )
 
     text = ""
