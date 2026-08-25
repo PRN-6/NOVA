@@ -1,0 +1,24 @@
+# Speech & Wake Word Detection
+openwakeword
+faster-whisper
+onnxruntime
+
+# Audio Processing
+sounddevice
+scipy
+numpy
+
+# Machine Learning & AI
+scikit-learn
+ollama
+
+# NVIDIA CUDA Acceleration (for faster-whisper GPU)
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
+
+# UI & System Tray
+pystray
+pillow
+
+# Distribution & Build
+pyinstaller

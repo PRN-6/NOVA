@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA - Local AI Desktop Voice Assistant</title>
+    <meta name="description"
+        content="NOVA is an ultra-fast, 100% private local voice assistant for Windows powered by faster-whisper, openWakeWord, and Ollama.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- Background Ambient Glow -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-orb"></span>
+                <span class="logo-text">NOVA</span>
+                <span class="badge">v1.0</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#commands">Commands</a>
+                <a href="#install">Installation</a>
+                <a href="#download" class="nav-btn">Get NOVA</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-container">
+            <div class="hero-badge">⚡ Ultra-Low Latency & 100% Offline</div>
+            <h1 class="hero-title">Your Private AI Voice Assistant for Windows</h1>
+            <p class="hero-subtitle">
+                Control your PC at the speed of thought. Powered by GPU-accelerated local Whisper, wake word spotting,
+                and dual-lane semantic routing. Zero cloud data leaks.
+            </p>
+
+            <div class="hero-cta" id="download">
+                <a href="downloads/NOVA-Setup-v1.0.0.exe" download class="btn btn-primary" id="download-btn">
+                    <span class="btn-icon">⬇</span>
+                    <div class="btn-text">
+                        <span class="btn-main">Download for Windows</span>
+                        <span class="btn-sub">v1.0.0 | Windows 10/11 64-bit (x64)</span>
+                    </div>
+                </a>
+                <a href="#install" class="btn btn-secondary">Setup Guide</a>
+            </div>
+
+            <!-- Floating Hero Graphic -->
+            <div class="hero-visual">
+                <div class="voice-wave-card">
+                    <div class="card-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="card-title">NOVA Background Service</span>
+                    </div>
+                    <div class="visual-content">
+                        <div class="ai-orb"></div>
+                        <div class="transcript-box">
+                            <span class="speaker">User:</span> <span id="typing-text">"Alexa, open Chrome"</span>
+                        </div>
+                        <div class="status-tag">🟢 Tray Status: Active (52ms response)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Key Features Grid -->
+    <section class="section" id="features">
+        <div class="section-header">
+            <h2>Engineered for Privacy & Speed</h2>
+            <p>Runs directly on your hardware without sending a single byte of audio to the cloud.</p>
+        </div>
+
+        <div class="grid grid-3">
+            <div class="card">
+                <div class="card-icon">⚡</div>
+                <h3>Sub-100ms Latency</h3>
+                <p>Equipped with CUDA GPU acceleration and fast TF-IDF vector routing for instantaneous command
+                    execution.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🔒</div>
+                <h3>100% Local & Private</h3>
+                <p>Speech recognition, wake-word detection, and LLM reasoning run completely on your machine. No API
+                    keys or subscriptions.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🎧</div>
+                <h3>System Tray Background App</h3>
+                <p>Runs silently in your Windows notification tray with live status indicators, pause/resume, and zero
+                    CPU waste.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🧠</div>
+                <h3>Hybrid Dual-Lane AI</h3>
+                <p>Fast-lane semantic vectorizer handles common apps instantly, while Ollama (Qwen 2.5) solves complex
+                    natural requests.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🔌</div>
+                <h3>Modular Skills Engine</h3>
+                <p>Easily create new custom Python skills to launch apps, control media, automate workflows, or manage
+                    files.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">💻</div>
+                <h3>Auto CPU Fallback</h3>
+                <p>Optimized for NVIDIA RTX/GTX GPUs, with automatic fallback to int8 CPU quantized execution for any
+                    PC.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Voice Commands Section -->
+    <section class="section" id="commands">
+        <div class="section-header">
+            <h2>Supported Voice Commands</h2>
+            <p>Click any voice intent below to preview how NOVA processes it.</p>
+        </div>
+
+        <div class="command-showcase">
+            <div class="command-list">
+                <button class="cmd-pill active" data-cmd="Alexa, open Chrome"
+                    data-action="Launching Google Chrome Browser" data-lane="Fast-Lane Router (< 2ms)">🌐 "Alexa, open
+                    Chrome"</button>
+                <button class="cmd-pill" data-cmd="Alexa, launch WhatsApp" data-action="Opening WhatsApp Desktop App"
+                    data-lane="Fast-Lane Router (< 2ms)">💬 "Alexa, launch WhatsApp"</button>
+                <button class="cmd-pill" data-cmd="Alexa, bring up my code editor"
+                    data-action="Reasoning via Ollama -> Launching VS Code" data-lane="Ollama AI Lane (qwen2.5)">💻
+                    "Alexa, bring up my code editor"</button>
+                <button class="cmd-pill" data-cmd="Alexa, I want to search python docs"
+                    data-action="Reasoning via Ollama -> Opening Browser Search" data-lane="Ollama AI Lane (qwen2.5)">🔍
+                    "Alexa, search python docs"</button>
+            </div>
+
+            <div class="terminal-preview">
+                <div class="terminal-bar">
+                    <span>nova-debug-console.log</span>
+                </div>
+                <div class="terminal-body">
+                    <p><span class="log-info">[INFO]</span> Wake word 'alexa' detected (Confidence: 0.99)</p>
+                    <p><span class="log-accent">[INPUT]</span> <span id="preview-cmd">"Alexa, open Chrome"</span></p>
+                    <p><span class="log-lane">[ROUTER]</span> <span id="preview-lane">Fast-Lane Router (< 2ms)</span>
+                    </p>
+                    <p><span class="log-success">[SUCCESS]</span> <span id="preview-action">Launching Google Chrome
+                            Browser</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3-Step Quick Install -->
+    <section class="section install-section" id="install">
+        <div class="section-header">
+            <h2>Get Started in 3 Steps</h2>
+            <p>No complex installations or environment setup required.</p>
+        </div>
+
+        <div class="grid grid-3 steps-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <h3>Download & Extract</h3>
+                <p>Download the latest zip package and extract it to any folder on your PC.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <h3>Launch NOVA.exe</h3>
+                <p>Double-click <code>NOVA.exe</code>. The glowing green icon will appear in your taskbar tray.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <h3>Speak Naturally</h3>
+                <p>Say <b>"Alexa"</b>, listen for the beep, and speak your command.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>© 2026 NOVA Assistant. Built with Python, faster-whisper, and openWakeWord.</p>
+            <p class="footer-meta">100% Open Source & Privacy Preserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

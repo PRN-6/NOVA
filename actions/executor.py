@@ -10,15 +10,18 @@ def preload_ai_model():
     logger.info("preloading ai model")
     try:
         ollama.chat(
-            model='qwen2.5:1.5b',
+            model='qwen2.5:0.5b',
             messages=[{'role': 'user', 'content': 'ping'}],
-            keep_alive=300
+            keep_alive="60s",
+            options={
+                'num_ctx': 512
+            }
         )
         logger.info("ai model preloaded successfully")
     except Exception as e:
         logger.warning(f"could not preload ai model: {e}")
 
-def execute_system_command(text: str) -> bool:
+def execute_system_command(text: str, on_action_callback = None) -> bool:
     """
     Sends the user's speech to Qwen. Qwen selects the tool name, 
     and we run the corresponding Python function.
@@ -26,7 +29,10 @@ def execute_system_command(text: str) -> bool:
     # 1. Fast Lane (Instant Execution)
     fast_tool = fast_router.route(text)
     if fast_tool:
-        return manager.execute_skill(fast_tool, text)
+        success = manager.execute_skill(fast_tool, text)
+        if on_action_callback:
+            on_action_callback(fast_tool, success)
+        return success
 
     # 2. Slow AI Lane (Fallback)
     logger.info(f"Command '{text}' is complex. Sending to Ollama AI...")
@@ -45,12 +51,13 @@ def execute_system_command(text: str) -> bool:
 
     try:
         response = ollama.chat(
-            model='qwen2.5:1.5b',
-            keep_alive=300,
+            model='qwen2.5:0.5b',
+            keep_alive="60s",
             options={
                 'temperature': 0.2,
                 'top_p': 0.9,
-                'top_k': 40
+                'top_k': 40,
+                'num_ctx': 512
             },
             messages=[
                 {'role': 'system', 'content': system_prompt},
@@ -62,9 +69,17 @@ def execute_system_command(text: str) -> bool:
         logger.info(f"AI Selected: '{selected_tool}' for input: '{text}'")
 
         if selected_tool != "None":
-            return manager.execute_skill(selected_tool, text)
+            success = manager.execute_skill(selected_tool, text)
+            if on_action_callback:
+                on_action_callback(selected_tool, success)
+            return success
+        else:
+            if on_action_callback:
+                on_action_callback("Unknown", False)
         
     except Exception as e:
         logger.error(f"Error communicating with local ai: {e}")
+        if on_action_callback:
+            on_action_callback("Error", False)
 
     return False

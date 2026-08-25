@@ -1,72 +1,91 @@
 # -----------------------------
-# Python
+# Python Bytecode & Cache
 # -----------------------------
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# Virtual Environment
+# -----------------------------
+# Virtual Environments
+# -----------------------------
 .venv/
 venv/
+ENV/
 env/
+env.bak/
+venv.bak/
 
-# Environment Variables
-.env
-.env.*
-
-# IDE
-.vscode/
-.idea/
-
-# OS Files
-.DS_Store
-Thumbs.db
-
-# Python Packaging
+# -----------------------------
+# PyInstaller & Build Outputs
+# -----------------------------
 build/
 dist/
+*.spec
+*.manifest
+*.pkg
 *.egg-info/
+.eggs/
 
-# Logs
+# -----------------------------
+# Inno Setup & Installers
+# -----------------------------
+installer/
+website/downloads/*.exe
+website/downloads/*.zip
+*.exe
+!assets/*.ico
+
+# -----------------------------
+# Logs & Databases
+# -----------------------------
 *.log
+nova.log
+*.sqlite3
+*.db
 
-# Testing
+# -----------------------------
+# Environment Variables & Secrets
+# -----------------------------
+.env
+.env.*
+secrets.json
+config.local.json
+
+# -----------------------------
+# IDE & System Files
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -----------------------------
+# Testing & Type Checking
+# -----------------------------
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Type Checkers
 .mypy_cache/
-.pyre/
 .pytype/
+.pyre/
 
-# Jupyter
-.ipynb_checkpoints/
-
-# Audio Files
+# -----------------------------
+# Temporary & Audio Dumps
+# -----------------------------
+temp/
+tmp/
 *.wav
 *.mp3
 *.flac
 
-# Temporary Files
-temp/
-tmp/
-
-# Database
-*.db
-*.sqlite3
-
-# AI Models (downloaded locally)
+# -----------------------------
+# Local Models & Caches
+# -----------------------------
 models/
 checkpoints/
-
-# Cache
 .cache/
-
-# Generated Files
-output/
-outputs/
-
-# Secrets
-secrets.json
-config.local.json
