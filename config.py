@@ -10,7 +10,7 @@ DTYPE = "float32"
 
 # Silence / Voice Activity Detection (VAD)
 SILENCE_THRESHOLD = 0.008
-SILENCE_DURATION_CHUNKS = 38 # 38 chunks * 80ms = ~3.0s pause after speech for reliable capture
+SILENCE_DURATION_CHUNKS = 10  # 10 chunks * 80ms = ~0.8s pause after speech for reliable capture
 
 # Whisper model configuration (small.en: 3x accuracy of base.en, ~80ms on CUDA)
 WHISPER_MODEL_SIZE = "small.en"

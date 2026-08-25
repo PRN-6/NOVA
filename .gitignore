@@ -1,5 +1,5 @@
 # -----------------------------
-# Python Bytecode & Cache
+# Python
 # -----------------------------
 __pycache__/
 *.py[cod]
@@ -11,81 +11,57 @@ __pycache__/
 # -----------------------------
 .venv/
 venv/
-ENV/
 env/
-env.bak/
-venv.bak/
+ENV/
 
 # -----------------------------
-# PyInstaller & Build Outputs
-# -----------------------------
-build/
-dist/
-*.spec
-*.manifest
-*.pkg
-*.egg-info/
-.eggs/
-
-# -----------------------------
-# Inno Setup & Installers
+# Large Binary Installers & Builds (Do NOT push to Git - exceeds 100MB limit)
 # -----------------------------
 installer/
 website/downloads/*.exe
 website/downloads/*.zip
+dist/
+build/
 *.exe
-!assets/*.ico
+!assets/icon.ico
+*.spec
 
 # -----------------------------
-# Logs & Databases
+# Logs & Environment Variables
 # -----------------------------
 *.log
 nova.log
-*.sqlite3
-*.db
-
-# -----------------------------
-# Environment Variables & Secrets
-# -----------------------------
 .env
 .env.*
 secrets.json
 config.local.json
 
 # -----------------------------
-# IDE & System Files
+# IDE & OS Files
 # -----------------------------
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
 .DS_Store
 Thumbs.db
-desktop.ini
 
 # -----------------------------
-# Testing & Type Checking
+# Testing & Cache
 # -----------------------------
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
-.pytype/
-.pyre/
+.cache/
+models/
+checkpoints/
 
 # -----------------------------
-# Temporary & Audio Dumps
+# Audio & Temp Files
 # -----------------------------
 temp/
 tmp/
 *.wav
 *.mp3
 *.flac
-
-# -----------------------------
-# Local Models & Caches
-# -----------------------------
-models/
-checkpoints/
-.cache/
+*.db
+*.sqlite3
