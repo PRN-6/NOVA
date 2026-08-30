@@ -10,7 +10,7 @@ DTYPE = "float32"
 
 # Silence / Voice Activity Detection (VAD)
 SILENCE_THRESHOLD = 0.008
-SILENCE_DURATION_CHUNKS = 10  # 10 chunks * 80ms = ~0.8s pause after speech for reliable capture
+SILENCE_DURATION_CHUNKS = 15  # 10 chunks * 80ms = ~0.8s pause after speech for reliable capture
 
 # Whisper model configuration (small.en: 3x accuracy of base.en, ~80ms on CUDA)
 WHISPER_MODEL_SIZE = "small.en"
@@ -21,5 +21,8 @@ WHISPER_HOTWORDS = "Brave, Chrome, WhatsApp, YouTube, tab, close, open, search, 
 INITIAL_PROMPT = "Commands for Nova assistant to open apps like Brave, Chrome, WhatsApp, and search the web, Google, or YouTube."
 
 # Wake word configuration
-WAKE_WORD_MODEL = "alexa"
+WAKE_WORD_MODEL = "nova"
 WAKE_WORD_THRESHOLD = 0.50
+
+# Audio feedback sounds (True = beep on wake, False = silent)
+ENABLE_BEEP = False

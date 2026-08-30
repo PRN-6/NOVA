@@ -38,7 +38,7 @@ class FloatingHUD:
         self.audio_level = 0.0
         self.current_border_color = self.border_idle
         self.status_title = "NOVA ASSISTANT"
-        self.status_subtitle = "Say 'Alexa' or 'Nova' to begin"
+        self.status_subtitle = "Say'Nova' to begin"
         self.status_icon = "🎙️"
         
         # Dragging state
@@ -233,7 +233,7 @@ class FloatingHUD:
         if state == "idle":
             self.status_icon = "🎙️"
             self.status_title = "NOVA READY"
-            self.status_subtitle = state_data.get("text", "Say 'Alexa' or 'Nova'")
+            self.status_subtitle = state_data.get("text", "Say'Nova'")
             self.current_border_color = self.border_idle
             self.audio_level = 0.0
             

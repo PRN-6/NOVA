@@ -12,9 +12,10 @@ for _pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
         except Exception:
             pass
 
-from openwakeword.model import Model
-import openwakeword.utils
+# openWakeWord replaced by Whisper-based wake detection
 import logging
+import re
+import threading
 import config
 from faster_whisper import WhisperModel
 import queue
@@ -32,11 +33,7 @@ class SpeechStreamer:
         self.silence_duration_chunks = config.SILENCE_DURATION_CHUNKS
         self.is_active = False
 
-        # Automatically download pre-trained wake word models if not present
-        openwakeword.utils.download_models()
-
-        logger.info(f"Loading wake word model: {config.WAKE_WORD_MODEL}")
-        self.oww_model = Model(wakeword_models=[config.WAKE_WORD_MODEL], inference_framework="onnx")
+        logger.info("Using Whisper-based 'Hey Nova' / 'Nova' wake word detection.")
 
         logger.info(f"Loading whisper model {config.WHISPER_MODEL_SIZE} on {config.WHISPER_DEVICE}")
 
@@ -78,42 +75,85 @@ class SpeechStreamer:
         on_sleep_callback: Callable[[], None] = None
     ) -> None:
         audio_buffer = []
+        idle_buffer = []          # Short rolling buffer used for wake word detection
         silence_counter = 0
         has_spoken = False
 
-        logger.info(f"NOVA is online. Say '{config.WAKE_WORD_MODEL}' to activate.")
+        # FIX 2: Looser regex — also catches common Whisper mishearings of "Nova"
+        # e.g. "Nora", "over", "mover", "nover" etc.
+        WAKE_PATTERN = re.compile(
+            r'\b(nova|nover|nova\'s|novah|nora)\b',
+            re.IGNORECASE
+        )
+
+        # FIX 1: Scan every 0.8 seconds (faster detection window)
+        IDLE_WINDOW_CHUNKS = int(self.sample_rate * 0.8 / config.BLOCK_SIZE)
+        # Overlap: keep last half of the buffer so "Nova" at window boundaries is never missed
+        IDLE_OVERLAP_CHUNKS = IDLE_WINDOW_CHUNKS // 2
+
+        logger.info("NOVA is online. Say 'Nova' to activate.")
         try:
             with self.stream:
                 while self.stream.active:
                     chunk = self.audio_queue.get()
 
-                    # 1. Idle state: Listen for wake word
+                    # 1. Idle state: Listen for "Nova" via Whisper
                     if not self.is_active:
-                        oww_chunk = (chunk.flatten() * 32767).astype(np.int16)
-                        prediction = self.oww_model.predict(oww_chunk)
+                        # Accumulate audio into idle_buffer
+                        idle_buffer.append(chunk)
 
-                        score = prediction.get(config.WAKE_WORD_MODEL, 0.0)
-                        if score > config.WAKE_WORD_THRESHOLD:
-                            logger.info(f"Wake word '{config.WAKE_WORD_MODEL}' detected! (Confidence: {score:.2f})")
-                            
-                            # Reset openWakeWord internal buffer so it does not loop
-                            self.oww_model.reset()
+                        if len(idle_buffer) >= IDLE_WINDOW_CHUNKS:
+                            # Transcribe the short idle buffer using Whisper
+                            idle_audio = np.concatenate(idle_buffer).flatten()
 
-                            if on_wake_word_callback:
-                                on_wake_word_callback()
+                            # FIX 1: Overlapping window — keep last half for next scan
+                            # so "Nova" spoken at a boundary is never split and missed
+                            idle_buffer = idle_buffer[IDLE_OVERLAP_CHUNKS:]
 
-                            # Play an auditory beep asynchronously so it does not block the audio stream
-                            try:
-                                import winsound
-                                threading.Thread(target=lambda: winsound.MessageBeep(winsound.MB_ICONASTERISK), daemon=True).start()
-                            except Exception:
-                                pass
+                            segments, _ = self.model.transcribe(
+                                idle_audio,
+                                beam_size=2,          # FIX 3: beam_size=2 is more accurate than 1
+                                without_timestamps=True,
+                                language='en',
+                                vad_filter=True,
+                            )
+                            idle_text = " ".join([s.text.strip() for s in segments]).strip()
 
-                            self.is_active = True
-                            has_spoken = False
-                            silence_counter = 0
-                            audio_buffer.clear()
-                            audio_buffer.append(chunk)
+                            if idle_text:
+                                logger.debug(f"Idle scan heard: '{idle_text}'")
+
+                            # Check if user said "Nova" or "Hey Nova"
+                            if WAKE_PATTERN.search(idle_text):
+                                logger.info(f"Wake word 'Nova' detected in: '{idle_text}'")
+
+                                if on_wake_word_callback:
+                                    on_wake_word_callback()
+
+                                # Play activation beep (if enabled in config)
+                                if getattr(config, "ENABLE_BEEP", False):
+                                    try:
+                                        import winsound
+                                        threading.Thread(target=lambda: winsound.MessageBeep(winsound.MB_ICONASTERISK), daemon=True).start()
+                                    except Exception:
+                                        pass
+
+                                # Check if the wake word was a one-shot command
+                                # e.g. "Hey Nova open notepad" — strip wake phrase and execute directly
+                                inline_command = WAKE_PATTERN.sub('', idle_text).strip(".!?, \t\n")
+                                if inline_command:
+                                    logger.info(f"Inline command detected: '{inline_command}'")
+                                    on_text_callback(inline_command)
+                                    if on_sleep_callback:
+                                        on_sleep_callback()
+                                    with self.audio_queue.mutex:
+                                        self.audio_queue.queue.clear()
+                                    continue
+
+                                # No inline command — activate full listening mode
+                                self.is_active = True
+                                has_spoken = False
+                                silence_counter = 0
+                                audio_buffer.clear()
                         continue
 
                     # 2. Active state: Record voice command
@@ -136,7 +176,6 @@ class SpeechStreamer:
                         logger.info("No speech detected after wake word. Returning to sleep.")
                         audio_buffer.clear()
                         self.is_active = False
-                        self.oww_model.reset()
                         if on_sleep_callback:
                             on_sleep_callback()
                         with self.audio_queue.mutex:
@@ -181,12 +220,11 @@ class SpeechStreamer:
                         silence_counter = 0
                         has_spoken = False
                         self.is_active = False
-                        self.oww_model.reset()
 
                         # Clear audio queue to avoid stale audio
                         with self.audio_queue.mutex:
                             self.audio_queue.queue.clear()
-                        logger.info(f"Waiting for wake word '{config.WAKE_WORD_MODEL}'...")
+                        logger.info("Waiting for wake word 'Nova'...")
 
         except Exception as e:
             logger.error(f"Error in streaming pipeline: {e}")
