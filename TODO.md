@@ -11,6 +11,9 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
   - Add fallback sequence: Protocol URI (`whatsapp:`) $\rightarrow$ App Execution Alias (`WhatsApp.exe`) $\rightarrow$ Windows Store package lookup $\rightarrow$ WhatsApp Web in browser.
 - [ ] **Text-To-Speech (TTS) Voice Responses**
   - Add offline, low-latency TTS (e.g., `pyttsx3`, `edge-tts`, or `piper-tts`) so NOVA can speak back to confirm actions (e.g., *"Opening Chrome"*, *"Volume set to 50%"*).
+- [x] **Silero VAD Neural Network Integration**
+  - Replace simple energy/RMS thresholding with **Silero VAD (ONNX)** for enterprise-grade speech segmentation.
+  - Eliminates false triggers from breathing, keyboard clicks, and background fans while cutting latency when you stop speaking.
 - [ ] **Wake-Word Sensitivity & Noise Calibration**
   - Add an automatic ambient noise calibration step on startup to dynamically adjust `SILENCE_THRESHOLD`.
 
@@ -76,8 +79,10 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 ---
 
-## 🎨 5. UI / UX & Audio Presentation
+## 🎨 5. UI / UX & Web / Audio Presentation
 
+- [ ] **Website Redesign with Tailwind CSS (`website/`)**
+  - Refactor custom `styles.css` to Tailwind CSS for modern utility styling, responsive design, and enhanced animations.
 - [ ] **Floating HUD Polish & Customization**
   - Add customizable themes (Cyberpunk Neon, Glassmorphism Dark, Minimalist Light).
   - Add adjustable HUD positioning (Top-Center, Bottom-Right, Draggable).
@@ -103,7 +108,7 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 | Milestone | Target | Description |
 | :--- | :--- | :--- |
-| **v1.1** | *Core Polish* | Fix WhatsApp launcher, add pyttsx3 voice feedback, tune VAD. |
+| **v1.1** | *Core Polish* | Fix WhatsApp launcher, add pyttsx3 voice feedback, Silero VAD integration. |
 | **v1.2** | *Media & System* | Spotify plugin, Volume/Brightness controls, Screenshot tool. |
 | **v1.3** | *Vision Multimodal* | MediaPipe hand gestures (Air swipe, Pinch volume, Play/Pause). |
 | **v1.4** | *Intelligence* | Multi-turn conversation memory, streaming HUD text. |

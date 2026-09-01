@@ -9,8 +9,9 @@ CHANNELS = 1
 DTYPE = "float32"
 
 # Silence / Voice Activity Detection (VAD)
-SILENCE_THRESHOLD = 0.008
-SILENCE_DURATION_CHUNKS = 15  # 10 chunks * 80ms = ~0.8s pause after speech for reliable capture
+VAD_THRESHOLD = 0.50             # Silero neural VAD speech probability threshold (0.0 to 1.0)
+SILENCE_DURATION_CHUNKS = 8      # 8 chunks * 80ms = ~0.64s pause after speech for rapid cut-off
+SILENCE_THRESHOLD = 0.008        # Fallback RMS noise floor
 
 # Whisper model configuration (small.en: 3x accuracy of base.en, ~80ms on CUDA)
 WHISPER_MODEL_SIZE = "small.en"

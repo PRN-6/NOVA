@@ -18,6 +18,7 @@ import re
 import threading
 import config
 from faster_whisper import WhisperModel
+from speech.vad import SileroVAD
 import queue
 import sounddevice as sd
 import numpy as np
@@ -29,8 +30,9 @@ logger = logging.getLogger("NOVA.SpeechStreamer")
 class SpeechStreamer:
     def __init__(self) -> None:
         self.sample_rate = config.SAMPLE_RATE
-        self.silence_threshold = config.SILENCE_THRESHOLD
+        self.silence_threshold = getattr(config, "SILENCE_THRESHOLD", 0.008)
         self.silence_duration_chunks = config.SILENCE_DURATION_CHUNKS
+        self.vad = SileroVAD(threshold=getattr(config, "VAD_THRESHOLD", 0.50))
         self.is_active = False
 
         logger.info("Using Whisper-based 'Hey Nova' / 'Nova' wake word detection.")
@@ -151,6 +153,7 @@ class SpeechStreamer:
 
                                 # No inline command — activate full listening mode
                                 self.is_active = True
+                                self.vad.reset()
                                 has_spoken = False
                                 silence_counter = 0
                                 audio_buffer.clear()
@@ -163,18 +166,22 @@ class SpeechStreamer:
                     if on_audio_energy_callback:
                         on_audio_energy_callback(volume)
 
-                    # Detect speech energy
-                    if volume < self.silence_threshold:
-                        silence_counter += 1
-                    else:
+                    # Silero Neural VAD: check for actual human speech
+                    is_voice = self.vad.is_speech(chunk)
+
+                    if is_voice:
                         has_spoken = True
                         silence_counter = 0
+                    else:
+                        if has_spoken:
+                            silence_counter += 1
 
                     # Check timeout if user never spoke after wake word
                     total_chunks = len(audio_buffer)
                     if not has_spoken and total_chunks > int(self.sample_rate * 4 / config.BLOCK_SIZE):
                         logger.info("No speech detected after wake word. Returning to sleep.")
                         audio_buffer.clear()
+                        self.vad.reset()
                         self.is_active = False
                         if on_sleep_callback:
                             on_sleep_callback()
@@ -217,6 +224,7 @@ class SpeechStreamer:
 
                         # Reset state and sleep
                         audio_buffer.clear()
+                        self.vad.reset()
                         silence_counter = 0
                         has_spoken = False
                         self.is_active = False
