@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Animated Typing Effect in Hero
     const phrases = [
-        '"Alexa, open Chrome"',
-        '"Alexa, launch WhatsApp"',
-        '"Alexa, open browser"',
-        '"Alexa, bring up code editor"'
+        '"Nova", open Chrome"',
+        '"Nova, launch WhatsApp"',
+        '"Nova, open browser"',
+        '"Nova, bring up code editor"'
     ];
     let phraseIdx = 0;
     let charIdx = 0;
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function typeLoop() {
         if (!typingElement) return;
         const currentPhrase = phrases[phraseIdx];
-        
+
         if (isDeleting) {
             typingElement.textContent = currentPhrase.substring(0, charIdx - 1);
             charIdx--;

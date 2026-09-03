@@ -16,6 +16,9 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
   - Eliminates false triggers from breathing, keyboard clicks, and background fans while cutting latency when you stop speaking.
 - [ ] **Wake-Word Sensitivity & Noise Calibration**
   - Add an automatic ambient noise calibration step on startup to dynamically adjust `SILENCE_THRESHOLD`.
+- [ ] **Custom User Wake-Word & Activation Phrases**
+  - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Nova"*, *"Friday"*) via UI settings or config.
+  - Support custom regex patterns, phonetic alias expansion, and configurable sensitivity for user-defined awake call commands.
 
 ---
 

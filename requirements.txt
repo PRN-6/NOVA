@@ -1,5 +1,4 @@
 # Speech & Wake Word Detection
-openwakeword
 faster-whisper
 onnxruntime
 
