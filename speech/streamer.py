@@ -176,10 +176,10 @@ class SpeechStreamer:
                         if has_spoken:
                             silence_counter += 1
 
-                    # Check timeout if user never spoke after wake word
+                    # Check timeout if user never spoke after wake word or in standby mode
                     total_chunks = len(audio_buffer)
-                    if not has_spoken and total_chunks > int(self.sample_rate * 4 / config.BLOCK_SIZE):
-                        logger.info("No speech detected after wake word. Returning to sleep.")
+                    if not has_spoken and total_chunks > int(self.sample_rate * 7 / config.BLOCK_SIZE):
+                        logger.info("No speech detected. Returning to sleep.")
                         audio_buffer.clear()
                         self.vad.reset()
                         self.is_active = False
@@ -222,17 +222,17 @@ class SpeechStreamer:
                             if on_sleep_callback:
                                 on_sleep_callback()
 
-                        # Reset state and sleep
+                        # Reset state for standby mode
                         audio_buffer.clear()
                         self.vad.reset()
                         silence_counter = 0
                         has_spoken = False
-                        self.is_active = False
+                        # self.is_active = False # REMOVED to enable standby mode
 
                         # Clear audio queue to avoid stale audio
                         with self.audio_queue.mutex:
                             self.audio_queue.queue.clear()
-                        logger.info("Waiting for wake word 'Nova'...")
+                        logger.info("Command finished. Entering standby mode for follow-up...")
 
         except Exception as e:
             logger.error(f"Error in streaming pipeline: {e}")

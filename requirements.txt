@@ -18,6 +18,8 @@ nvidia-cudnn-cu12
 # UI & System Tray
 pystray
 pillow
+pywebview
+pyautogui
 
 # Distribution & Build
 pyinstaller

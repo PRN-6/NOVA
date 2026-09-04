@@ -52,7 +52,7 @@ To launch the assistant, simply run:
 ```powershell
 python app.py
 ```
-You will see the NOVA icon appear in your Windows System Tray. Say *"Hey Nova"* to wake it up!
+You will see the NOVA icon appear in your Windows System Tray. Say *"Nova"* to wake it up!
 
 ---
 

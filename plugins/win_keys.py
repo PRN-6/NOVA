@@ -57,6 +57,22 @@ def trigger_close_window():
     """Simulates Alt+F4 to close the active foreground window."""
     press_hotkey(VK_MENU, VK_F4)
 
+def trigger_maximize_window():
+    """Maximizes the active foreground window."""
+    hwnd = user32.GetForegroundWindow()
+    if hwnd:
+        user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
+    else:
+        press_hotkey(VK_LWIN, VK_UP)
+
+def trigger_minimize_window():
+    """Minimizes the active foreground window."""
+    hwnd = user32.GetForegroundWindow()
+    if hwnd:
+        user32.ShowWindow(hwnd, 6)  # SW_MINIMIZE
+    else:
+        press_hotkey(VK_LWIN, VK_DOWN)
+
 def kill_process(exe_name: str) -> bool:
     """Terminates an application process and its child tree cleanly on Windows."""
     try:
@@ -102,3 +118,17 @@ def trigger_lock_workstation():
 
 def trigger_snipping_tool():
     press_hotkey(VK_LWIN, VK_SHIFT, VK_S)
+
+def type_text(text: str):
+    """Pasting or typing text directly into the focused foreground window."""
+    try:
+        import pyperclip
+        pyperclip.copy(text)
+        time.sleep(0.02)
+        press_hotkey(VK_CONTROL, 0x56)  # Ctrl+V
+    except Exception:
+        try:
+            import pyautogui
+            pyautogui.write(text, interval=0.01)
+        except Exception:
+            pass

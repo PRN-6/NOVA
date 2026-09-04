@@ -39,6 +39,13 @@ class SemanticRouter:
             return None
             
         cleaned_text = user_text.lower().strip(".!?, \t\n")
+
+        # Instant dictation / typing match for any phrase starting with "type ..." or "write ..."
+        import re
+        if re.match(r'^(?:nova,?\s*)?(?:please\s*)?(?:can\s+you\s*)?(?:type\s+that|type\s+out|type|write\s+that|write\s+out|write)\s+', cleaned_text):
+            logger.info("Fast Lane Router matched 'system.type_text' (Direct Dictation Prefix)")
+            return "system.type_text"
+
         user_vector = self.vectorizer.transform([cleaned_text])
         similarities = cosine_similarity(user_vector, self.knowledge_base_vectors)[0]
         

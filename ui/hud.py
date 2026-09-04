@@ -2,12 +2,28 @@ import tkinter as tk
 import queue
 import threading
 import time
+import math
+import ctypes
+
+# Enable Windows DPI awareness for razor-sharp multi-monitor rendering
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 
 class FloatingHUD:
     """
-    A modern, frameless, semi-transparent floating HUD overlay for NOVA.
-    Runs on a dedicated Tkinter loop and provides real-time visual feedback for
-    Wake Word, Audio Energy, Speech Transcription, and Action Execution.
+    A cinematic, full-screen transparent HUD overlay for NOVA.
+    Features:
+    - 100% click-through (WS_EX_TRANSPARENT) so games & apps are completely unobstructed.
+    - Multi-tiered high-intensity glowing neon laser border around monitor edges on speech detection.
+    - Sci-Fi corner reticles, top telemetry badge, and animated equalizer audio waveform.
+    - Zero text/artifacts when idle: Screen is 100% clear.
+    - Dynamic bottom-center glassmorphic speech & transcription pill when user speaks.
     """
     def __init__(self, on_close_callback=None):
         self.on_close_callback = on_close_callback
@@ -17,81 +33,134 @@ class FloatingHUD:
         self.current_state = "idle"
         self.visible = True
         
-        # Dimensions & appearance
-        self.width = 380
-        self.height = 70
-        self.corner_radius = 24
+        # Canvas Background Transparency
+        self.transparent_color = "#010101"
+        self.text_primary = "#FFFFFF"
+        self.text_secondary = "#CBD5E1"
+        self.pill_bg = "#070B14"
         
-        # Color palette
-        self.bg_color = "#0B0F19"
-        self.pill_bg = "#111827"
-        self.text_primary = "#F9FAFB"
-        self.text_secondary = "#9CA3AF"
-        self.border_idle = "#1F2937"
-        self.border_listening = "#06B6D4"
-        self.border_processing = "#8B5CF6"
-        self.border_success = "#10B981"
-        self.border_error = "#EF4444"
+        # Color Palettes per State: (Accent Line, Soft Bloom, Subtle Halo)
+        self.themes = {
+            "idle": {
+                "accent": "#010101", "bloom": "#010101", "halo": "#010101",
+                "badge": "IDLE"
+            },
+            "listening": {
+                "accent": "#0284C7", "bloom": "#0369A1", "halo": "#0C4A6E",
+                "badge": "● NOVA // LISTENING"
+            },
+            "processing": {
+                "accent": "#8B5CF6", "bloom": "#6D28D9", "halo": "#4C1D95",
+                "badge": "⚡ NOVA // PROCESSING"
+            },
+            "success": {
+                "accent": "#059669", "bloom": "#047857", "halo": "#064E3B",
+                "badge": "✔ NOVA // ACTION EXECUTED"
+            },
+            "error": {
+                "accent": "#DC2626", "bloom": "#B91C1C", "halo": "#7F1D1D",
+                "badge": "✖ NOVA // UNKNOWN COMMAND"
+            }
+        }
         
-        # Animation & pulse variables
+        # Animation & telemetry
         self.pulse_phase = 0.0
         self.audio_level = 0.0
-        self.current_border_color = self.border_idle
-        self.status_title = "NOVA ASSISTANT"
-        self.status_subtitle = "Say'Nova' to begin"
-        self.status_icon = "🎙️"
         
-        # Dragging state
-        self._drag_start_x = 0
-        self._drag_start_y = 0
+        # Subtitle text
+        self.status_title = ""
+        self.status_subtitle = ""
+        self.status_icon = ""
+        
+        # Dimensions
+        self.sw = 1920
+        self.sh = 1080
 
     def start_ui(self):
         """Initializes the Tkinter window and starts its main loop."""
         self.root = tk.Tk()
-        self.root.title("NOVA HUD")
+        self.root.title("NOVA Fullscreen HUD Overlay")
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
-        self.root.attributes("-alpha", 0.94)
         
-        # Configure transparency on Windows
-        self.root.config(bg=self.bg_color)
-        self.root.wm_attributes("-transparentcolor", self.bg_color)
+        # Desktop screen dimensions
+        self.sw = self.root.winfo_screenwidth()
+        self.sh = self.root.winfo_screenheight()
+        self.root.geometry(f"{self.sw}x{self.sh}+0+0")
         
-        # Initial position: Top-Center of Screen
-        screen_width = self.root.winfo_screenwidth()
-        pos_x = (screen_width - self.width) // 2
-        pos_y = 30
-        self.root.geometry(f"{self.width}x{self.height}+{pos_x}+{pos_y}")
+        # Transparency setup
+        self.root.config(bg=self.transparent_color)
+        try:
+            self.root.wm_attributes("-transparentcolor", self.transparent_color)
+        except Exception:
+            pass
         
-        # Canvas for rich rounded styling
+        # Full-screen canvas
         self.canvas = tk.Canvas(
             self.root,
-            width=self.width,
-            height=self.height,
-            bg=self.bg_color,
+            width=self.sw,
+            height=self.sh,
+            bg=self.transparent_color,
             highlightthickness=0
         )
         self.canvas.pack(fill="both", expand=True)
         
-        # Mouse dragging bindings
-        self.canvas.bind("<ButtonPress-1>", self._on_drag_start)
-        self.canvas.bind("<B1-Motion>", self._on_drag_motion)
+        # Bind Escape key to cleanly close the overlay if focused
+        self.root.bind("<Escape>", lambda e: self.close())
         
-        # Redraw loop and queue polling
+        # Enable full click-through (mouse clicks pass through to background apps)
+        self._enable_click_through()
+        
+        # Start redraw & animation loops
         self._draw_hud()
         self._poll_events()
         self._animate_pulse()
         
-        self.root.mainloop()
+        try:
+            self.root.mainloop()
+        except KeyboardInterrupt:
+            self.close()
 
-    def _on_drag_start(self, event):
-        self._drag_start_x = event.x
-        self._drag_start_y = event.y
-
-    def _on_drag_motion(self, event):
-        x = self.root.winfo_x() - self._drag_start_x + event.x
-        y = self.root.winfo_y() - self._drag_start_y + event.y
-        self.root.geometry(f"+{x}+{y}")
+    def _enable_click_through(self):
+        """Enables WS_EX_TRANSPARENT and WS_EX_NOACTIVATE so mouse clicks pass through the overlay."""
+        try:
+            # Force Tkinter to map the window so the parent HWND exists
+            self.root.update_idletasks()
+            self.root.update()
+            
+            hwnd_child = self.root.winfo_id()
+            hwnd_parent = ctypes.windll.user32.GetParent(hwnd_child) or hwnd_child
+            
+            GWL_EXSTYLE = -20
+            WS_EX_TRANSPARENT = 0x00000020
+            WS_EX_LAYERED = 0x00080000
+            WS_EX_NOACTIVATE = 0x08000000
+            WS_EX_TOOLWINDOW = 0x00000080
+            LWA_COLORKEY = 0x00000001
+            
+            # 64-bit safe Get/SetWindowLong
+            SetWindowLong = getattr(ctypes.windll.user32, 'SetWindowLongPtrW', ctypes.windll.user32.SetWindowLongW)
+            GetWindowLong = getattr(ctypes.windll.user32, 'GetWindowLongPtrW', ctypes.windll.user32.GetWindowLongW)
+            SetWindowLong.restype = ctypes.c_longlong
+            SetWindowLong.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_longlong]
+            GetWindowLong.restype = ctypes.c_longlong
+            GetWindowLong.argtypes = [ctypes.c_void_p, ctypes.c_int]
+            
+            # CRITICAL: Extended layered styles must ONLY be applied to the top-level parent window, NEVER child widgets
+            style = GetWindowLong(hwnd_parent, GWL_EXSTYLE)
+            SetWindowLong(hwnd_parent, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW)
+            
+            # Re-apply color key transparency so Windows DWM treats #010101 as 100% transparent
+            col_hex = self.transparent_color.lstrip('#')
+            col_int = int(col_hex, 16)
+            r = (col_int >> 16) & 0xFF
+            g = (col_int >> 8) & 0xFF
+            b = col_int & 0xFF
+            colorref = r | (g << 8) | (b << 16)
+            
+            ctypes.windll.user32.SetLayeredWindowAttributes(hwnd_parent, colorref, 0, LWA_COLORKEY)
+        except Exception:
+            pass
 
     def _draw_rounded_rect(self, x1, y1, x2, y2, radius, **kwargs):
         """Draws a smooth rounded pill rectangle on the canvas."""
@@ -112,86 +181,205 @@ class FloatingHUD:
         return self.canvas.create_polygon(points, smooth=True, **kwargs)
 
     def _draw_hud(self):
-        """Redraws the entire HUD widget based on current state."""
+        """Redraws the entire full-screen glowing overlay based on current state."""
         self.canvas.delete("all")
         
-        # 1. Background Pill Container
-        margin = 4
-        self._draw_rounded_rect(
-            margin, margin,
-            self.width - margin, self.height - margin,
-            radius=self.corner_radius,
-            fill=self.pill_bg,
-            outline=self.current_border_color,
-            width=2
-        )
-        
-        # 2. Status Icon Pill / Orb (Left)
-        icon_cx = 38
-        icon_cy = self.height // 2
-        
-        orb_color = self.current_border_color
-        self.canvas.create_oval(
-            icon_cx - 16, icon_cy - 16,
-            icon_cx + 16, icon_cy + 16,
-            fill="#1E293B",
-            outline=orb_color,
-            width=1.5
-        )
-        self.canvas.create_text(
-            icon_cx, icon_cy,
-            text=self.status_icon,
-            font=("Segoe UI Emoji", 12)
-        )
-        
-        # 3. Waveform / Audio energy bars when listening
-        if self.current_state == "listening":
-            bar_x = self.width - 45
-            for i in range(4):
-                amp = max(4, int(min(22, (self.audio_level * 180) * (0.8 + (i % 2) * 0.4))))
-                self.canvas.create_line(
-                    bar_x + (i * 6), icon_cy - amp // 2,
-                    bar_x + (i * 6), icon_cy + amp // 2,
-                    fill=self.border_listening,
-                    width=2.5,
-                    capstyle=tk.ROUND
-                )
-        
-        # 4. Text Labels (Title & Subtitle)
-        self.canvas.create_text(
-            68, icon_cy - 10,
-            anchor="w",
-            text=self.status_title,
-            fill=self.text_primary,
-            font=("Segoe UI", 10, "bold")
-        )
-        
-        # Truncate subtitle if too long
-        sub = self.status_subtitle
-        if len(sub) > 36:
-            sub = sub[:33] + "..."
+        # If in idle state, do not draw text or heavy borders — screen is 100% clean
+        if self.current_state == "idle":
+            return
             
-        self.canvas.create_text(
-            68, icon_cy + 11,
-            anchor="w",
-            text=sub,
-            fill=self.text_secondary,
-            font=("Segoe UI", 8)
+        sw = self.sw
+        sh = self.sh
+        theme = self.themes.get(self.current_state, self.themes["listening"])
+        
+        # Dynamic pulse calculation
+        pulse = (math.sin(self.pulse_phase) + 1.0) / 2.0  # 0.0 to 1.0
+        
+        # ─────────────────────────────────────────────────────────────
+        # 1. SUBTLE GLOWING BORDER (Inside screen margin)
+        # ─────────────────────────────────────────────────────────────
+        margin = 12
+        
+        # Layer 1: Ambient Halo Depth (Subtle & soft)
+        halo_w = int(3 + pulse * 2)
+        self.canvas.create_rectangle(
+            margin, margin, sw - margin, sh - margin,
+            outline=theme["halo"],
+            width=halo_w
         )
+        
+        # Layer 2: Slim Crisp Accent Border
+        self.canvas.create_rectangle(
+            margin, margin, sw - margin, sh - margin,
+            outline=theme["accent"],
+            width=1
+        )
+        
+        # ─────────────────────────────────────────────────────────────
+        # 2. MINIMALIST CORNER RETICLES
+        # ─────────────────────────────────────────────────────────────
+        blen = 32
+        bthick = 2
+        accent_col = theme["accent"]
+        
+        # Top-Left Bracket
+        self.canvas.create_line(margin - 1, margin, margin + blen, margin, fill=accent_col, width=bthick)
+        self.canvas.create_line(margin, margin - 1, margin, margin + blen, fill=accent_col, width=bthick)
+        
+        # Top-Right Bracket
+        self.canvas.create_line(sw - margin - blen, margin, sw - margin + 1, margin, fill=accent_col, width=bthick)
+        self.canvas.create_line(sw - margin, margin - 1, sw - margin, margin + blen, fill=accent_col, width=bthick)
+        
+        # Bottom-Left Bracket
+        self.canvas.create_line(margin - 1, sh - margin, margin + blen, sh - margin, fill=accent_col, width=bthick)
+        self.canvas.create_line(margin, sh - margin - blen, margin, sh - margin + 1, fill=accent_col, width=bthick)
+        
+        # Bottom-Right Bracket
+        self.canvas.create_line(sw - margin - blen, sh - margin, sw - margin + 1, sh - margin, fill=accent_col, width=bthick)
+        self.canvas.create_line(sw - margin, sh - margin - blen, sw - margin, sh - margin + 1, fill=accent_col, width=bthick)
+        
+        # ─────────────────────────────────────────────────────────────
+        # 3. TOP TELEMETRY RIBBON BADGE
+        # ─────────────────────────────────────────────────────────────
+        badge_text = theme.get("badge", "NOVA")
+        top_cx = sw // 2
+        top_cy = margin + 16
+        
+        # Glass pill for top badge
+        self._draw_rounded_rect(
+            top_cx - 120, top_cy - 11,
+            top_cx + 120, top_cy + 11,
+            radius=8,
+            fill="#090D16",
+            outline=theme["accent"],
+            width=1.2
+        )
+        self.canvas.create_text(
+            top_cx, top_cy,
+            text=badge_text,
+            fill=theme["accent"],
+            font=("Segoe UI", 9, "bold")
+        )
+        
+        # ─────────────────────────────────────────────────────────────
+        # 4. DYNAMIC BOTTOM-CENTER SPEECH PILL
+        # ─────────────────────────────────────────────────────────────
+        if self.status_subtitle or self.status_title:
+            text_to_show = self.status_subtitle or self.status_title
+            pill_width = min(720, max(420, len(text_to_show) * 11 + 150))
+            pill_height = 64
+            
+            # Position at bottom-center (85px above bottom bezel)
+            pill_x1 = (sw - pill_width) // 2
+            pill_y1 = sh - pill_height - 80
+            pill_x2 = pill_x1 + pill_width
+            pill_y2 = pill_y1 + pill_height
+            
+            # Outer Bloom Halo for Pill
+            self._draw_rounded_rect(
+                pill_x1 - 2, pill_y1 - 2, pill_x2 + 2, pill_y2 + 2,
+                radius=22,
+                fill=self.transparent_color,
+                outline=theme["bloom"],
+                width=3
+            )
+            
+            # Main Glassmorphic Pill
+            self._draw_rounded_rect(
+                pill_x1, pill_y1, pill_x2, pill_y2,
+                radius=20,
+                fill=self.pill_bg,
+                outline=theme["accent"],
+                width=1.5
+            )
+            
+            # Icon Orb (Left)
+            icon_cx = pill_x1 + 34
+            icon_cy = pill_y1 + (pill_height // 2)
+            
+            self.canvas.create_oval(
+                icon_cx - 15, icon_cy - 15,
+                icon_cx + 15, icon_cy + 15,
+                fill="#111827",
+                outline=theme["accent"],
+                width=1.5
+            )
+            self.canvas.create_text(
+                icon_cx, icon_cy,
+                text=self.status_icon,
+                font=("Segoe UI Emoji", 11)
+            )
+            
+            # Status Text Labels
+            text_x = pill_x1 + 60
+            
+            if self.status_title and self.status_subtitle:
+                # 2-line layout
+                self.canvas.create_text(
+                    text_x, icon_cy - 9,
+                    anchor="w",
+                    text=self.status_title,
+                    fill=theme["accent"],
+                    font=("Segoe UI", 9, "bold")
+                )
+                
+                # Subtitle (clean truncation if very long)
+                sub = self.status_subtitle
+                if len(sub) > 60:
+                    sub = sub[:57] + "..."
+                self.canvas.create_text(
+                    text_x, icon_cy + 10,
+                    anchor="w",
+                    text=sub,
+                    fill=self.text_primary,
+                    font=("Segoe UI", 10)
+                )
+            else:
+                # Single bold line
+                self.canvas.create_text(
+                    text_x, icon_cy,
+                    anchor="w",
+                    text=text_to_show,
+                    fill=self.text_primary,
+                    font=("Segoe UI", 10, "bold")
+                )
+            
+            # Equalizer Audio Waveform Bars (Right side)
+            if self.current_state in ("listening", "processing"):
+                bar_count = 6
+                bar_gap = 6
+                bar_start_x = pill_x2 - (bar_count * bar_gap) - 20
+                for i in range(bar_count):
+                    # Combine audio energy with sine phase for animated equalizer
+                    bar_pulse = math.sin(self.pulse_phase * 2.0 + i * 0.8)
+                    base_amp = max(4, int(self.audio_level * 140))
+                    amp = int(base_amp * (0.6 + 0.4 * bar_pulse)) if self.current_state == "listening" else int(7 + 5 * bar_pulse)
+                    amp = min(24, max(4, amp))
+                    
+                    self.canvas.create_line(
+                        bar_start_x + (i * bar_gap), icon_cy - amp // 2,
+                        bar_start_x + (i * bar_gap), icon_cy + amp // 2,
+                        fill=theme["accent"],
+                        width=2.5,
+                        capstyle=tk.ROUND
+                    )
 
     def _animate_pulse(self):
-        """Micro-animation loop for glowing borders and wave movements."""
+        """Smooth micro-animation loop for border glow and waveform."""
         if not self.root:
             return
             
-        if self.current_state == "listening":
-            self.pulse_phase += 0.15
-            self._draw_hud()
-        elif self.current_state == "processing":
-            self.pulse_phase += 0.2
-            self._draw_hud()
-            
-        self.root.after(40, self._animate_pulse)
+        try:
+            if self.current_state in ("listening", "processing"):
+                self.pulse_phase += 0.14
+                self._draw_hud()
+            elif self.current_state in ("success", "error"):
+                self.pulse_phase += 0.08
+                self._draw_hud()
+                
+            self.root.after(30, self._animate_pulse)
+        except Exception:
+            pass
 
     def _poll_events(self):
         """Polls thread-safe messages from background audio and executor threads."""
@@ -211,13 +399,21 @@ class FloatingHUD:
                     self._open_plugins_internal()
                 elif action == "quit":
                     if self.root:
-                        self.root.destroy()
+                        try:
+                            self.root.quit()
+                            self.root.destroy()
+                        except Exception:
+                            pass
+                        self.root = None
                     return
         except queue.Empty:
             pass
             
-        if self.root:
-            self.root.after(30, self._poll_events)
+        try:
+            if self.root:
+                self.root.after(25, self._poll_events)
+        except Exception:
+            pass
 
     def _open_plugins_internal(self):
         from ui.plugin_window import PluginManagerWindow
@@ -231,40 +427,40 @@ class FloatingHUD:
         self.current_state = state
         
         if state == "idle":
-            self.status_icon = "🎙️"
-            self.status_title = "NOVA READY"
-            self.status_subtitle = state_data.get("text", "Say'Nova'")
-            self.current_border_color = self.border_idle
+            self.status_icon = ""
+            self.status_title = ""
+            self.status_subtitle = ""
             self.audio_level = 0.0
             
         elif state == "listening":
-            self.status_icon = "👂"
-            self.status_title = "LISTENING..."
-            self.status_subtitle = state_data.get("text", "Listening for your command")
-            self.current_border_color = self.border_listening
+            self.status_icon = "🎙️"
+            self.status_title = "LISTENING"
+            self.status_subtitle = state_data.get("text", "Listening for your command...")
             
         elif state == "processing":
             self.status_icon = "⚡"
             self.status_title = "PROCESSING"
-            self.status_subtitle = state_data.get("text", "Analyzing intent...")
-            self.current_border_color = self.border_processing
+            self.status_subtitle = state_data.get("text", "Thinking...")
             
         elif state == "success":
             self.status_icon = "🚀"
             self.status_title = state_data.get("title", "ACTION EXECUTED")
-            self.status_subtitle = state_data.get("text", "Success")
-            self.current_border_color = self.border_success
-            # Auto-reset to idle after 2.5 seconds
-            if self.root:
-                self.root.after(2500, lambda: self._set_state_internal({"name": "idle"}))
+            self.status_subtitle = state_data.get("text", "Completed successfully")
+            try:
+                if self.root:
+                    self.root.after(2800, lambda: self._set_state_internal({"name": "idle"}))
+            except Exception:
+                pass
                 
         elif state == "error":
             self.status_icon = "⚠️"
             self.status_title = "UNKNOWN COMMAND"
-            self.status_subtitle = state_data.get("text", "Could not match intent")
-            self.current_border_color = self.border_error
-            if self.root:
-                self.root.after(2500, lambda: self._set_state_internal({"name": "idle"}))
+            self.status_subtitle = state_data.get("text", "Command not recognized")
+            try:
+                if self.root:
+                    self.root.after(2800, lambda: self._set_state_internal({"name": "idle"}))
+            except Exception:
+                pass
                 
         self._draw_hud()
 
@@ -308,4 +504,3 @@ class FloatingHUD:
     def close(self):
         """Thread-safe window shutdown."""
         self.queue.put(("quit", None))
-

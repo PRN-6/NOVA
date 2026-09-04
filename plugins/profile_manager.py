@@ -14,7 +14,7 @@ PROFILE_PATH = os.path.join(APPDATA_DIR, "user_profile.json")
 DEFAULT_PROFILE = {
     "user_name": "User",
     "assistant_name": "Nova",
-    "wake_word": "alexa",
+    "wake_word": "nova",
     "wake_threshold": 0.50,
     "whisper_device": "cuda",
     "whisper_model": "base.en",

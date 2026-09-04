@@ -59,6 +59,12 @@ from ui.manager import UIManager
 
 
 def main() -> None:
+    if "--dashboard" in sys.argv or "--settings" in sys.argv:
+        logger.info("Launching NOVA Control Center Dashboard...")
+        from ui.dashboard_runner import run_dashboard
+        run_dashboard()
+        return
+
     logger.info("Initializing NOVA Assistant Services...")
 
     ui_manager = UIManager()

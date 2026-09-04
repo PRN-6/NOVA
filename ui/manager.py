@@ -55,7 +55,7 @@ class UIManager:
 
     def on_sleep(self):
         """Triggered when speech times out or returns to idle."""
-        self.hud.set_state("idle", text="Say 'Alexa' or 'Nova'")
+        self.hud.set_state("idle", text="Say 'Nova' to begin")
         self.tray.set_status_color("#06B6D4")
 
     def toggle_hud(self):
@@ -74,7 +74,7 @@ class UIManager:
             self.tray.set_status_color("#EF4444")
             logger.info("NOVA Muted.")
         else:
-            self.hud.set_state("idle", text="Say 'Alexa' or 'Nova'")
+            self.hud.set_state("idle", text="Say 'Nova' to begin")
             self.tray.set_status_color("#06B6D4")
             logger.info("NOVA Unmuted.")
 
