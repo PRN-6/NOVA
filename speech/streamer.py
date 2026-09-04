@@ -117,7 +117,7 @@ class SpeechStreamer:
                                 beam_size=2,          # FIX 3: beam_size=2 is more accurate than 1
                                 without_timestamps=True,
                                 language='en',
-                                vad_filter=True,
+                                vad_filter=False,
                             )
                             idle_text = " ".join([s.text.strip() for s in segments]).strip()
 

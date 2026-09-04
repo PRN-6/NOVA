@@ -19,6 +19,12 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 - [ ] **Custom User Wake-Word & Activation Phrases**
   - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Nova"*, *"Friday"*) via UI settings or config.
   - Support custom regex patterns, phonetic alias expansion, and configurable sensitivity for user-defined awake call commands.
+- [ ] **Speaker Recognition & Voice Biometrics (Owner-Only Voice Lock)**
+  - Integrate a speaker verification model (e.g., `Resemblyzer`, `Sherpa-ONNX`, or `SpeechBrain ECAPA-TDNN`) to ensure NOVA only responds to the primary user's voice.
+  - **Voice Enrollment**: One-time setup script/UI wizard to capture 3–5 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/NOVA/`).
+  - **Real-Time Verification**: Extract acoustic embeddings from captured speech audio and compute cosine similarity against the owner's voiceprint before executing commands.
+  - **Rejection of Unauthorized Voices**: Silently drop or log non-matching voices (family, friends, TV/YouTube background chatter) below similarity threshold (e.g., `< 0.75`).
+
 
 ---
 
@@ -111,8 +117,9 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 | Milestone | Target | Description |
 | :--- | :--- | :--- |
-| **v1.1** | *Core Polish* | Fix WhatsApp launcher, add pyttsx3 voice feedback, Silero VAD integration. |
+| **v1.1** | *Core Polish* | Fix WhatsApp launcher, add pyttsx3 voice feedback, Silero VAD integration, Speaker Recognition (Voice Lock). |
 | **v1.2** | *Media & System* | Spotify plugin, Volume/Brightness controls, Screenshot tool. |
 | **v1.3** | *Vision Multimodal* | MediaPipe hand gestures (Air swipe, Pinch volume, Play/Pause). |
 | **v1.4** | *Intelligence* | Multi-turn conversation memory, streaming HUD text. |
 | **v2.0** | *Production Release* | Complete Inno Setup installer with Auto-start and settings GUI. |
+
