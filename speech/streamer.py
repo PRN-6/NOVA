@@ -43,7 +43,9 @@ class SpeechStreamer:
             self.model = WhisperModel(
                 config.WHISPER_MODEL_SIZE,
                 device=config.WHISPER_DEVICE,
-                compute_type=config.WHISPER_COMPUTE_TYPE
+                compute_type=config.WHISPER_COMPUTE_TYPE,
+                num_workers=1,      # limit worker threads → less RAM overhead
+                cpu_threads=2,      # cap CPU threads → pushes compute to GPU
             )
             # Warm up GPU inference so first command is instant
             _warmup = np.zeros(config.SAMPLE_RATE, dtype=np.float32)

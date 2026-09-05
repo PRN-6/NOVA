@@ -1,6 +1,6 @@
 # Speech & Wake Word Detection
 faster-whisper
-onnxruntime
+onnxruntime-gpu
 
 # Audio Processing
 sounddevice

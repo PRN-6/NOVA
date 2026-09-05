@@ -111,6 +111,41 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 - [ ] **Automatic Dependency & Model Downloader**
   - On first run, check if Ollama is running and automatically pull `qwen2.5:0.5b` if missing.
 
+
+---
+
+## 📱 7. NOVA Mobile — Android AI Assistant
+
+> Internet-connected mobile companion to NOVA PC. Uses NOVA's PC as the AI brain over WiFi/mobile data, with on-device fallback for basic offline commands.
+
+### 🏗️ Architecture
+- **Online mode:** Android app streams mic audio → NOVA PC WebSocket server → Whisper `small.en` transcribes → response sent back → phone executes command
+- **Offline mode:** On-device Whisper tiny/base model (ONNX via Whisper.cpp JNI) for basic commands without internet
+
+### 📋 Tasks
+- [ ] **Add WebSocket Server to NOVA PC (`server/ws_server.py`)**
+  - Accept audio stream from Android client over LAN/internet
+  - Transcribe using existing Whisper pipeline and return text result
+  - Accept remote command execution requests from Android
+- [ ] **Android App — Core (`app/`)** *(Kotlin, Android Studio)*
+  - Microphone recording and streaming
+  - Wake word detection on-device (tiny Whisper ONNX)
+  - Connect to NOVA PC WebSocket server
+  - Floating overlay HUD (like NOVA's desktop HUD)
+- [ ] **Android App — Phone Control**
+  - Open apps via Android Intents (*"Open WhatsApp"*, *"Open YouTube"*)
+  - Send WhatsApp messages via Intents
+  - Control volume, brightness, flashlight
+  - Read notifications aloud via Accessibility Service
+- [ ] **Android App — Remote PC Control**
+  - Send commands to NOVA PC over WebSocket (*"Open Chrome on PC"*, *"Lock PC"*)
+  - View PC status from phone (CPU, RAM, NOVA active/sleeping)
+- [ ] **Offline / Online Auto-Switch**
+  - Detect internet/LAN availability and seamlessly switch between on-device and PC-powered AI
+- [ ] **Android App — UI**
+  - Material You design with animated waveform visualizer
+  - Dark mode floating assistant overlay
+
 ---
 
 ## 📅 Roadmap Milestones
@@ -122,4 +157,5 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 | **v1.3** | *Vision Multimodal* | MediaPipe hand gestures (Air swipe, Pinch volume, Play/Pause). |
 | **v1.4** | *Intelligence* | Multi-turn conversation memory, streaming HUD text. |
 | **v2.0** | *Production Release* | Complete Inno Setup installer with Auto-start and settings GUI. |
+| **v3.0** | *Mobile Expansion* | NOVA Android app — voice control for phone + remote PC control over internet. |
 
