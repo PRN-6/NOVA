@@ -1,11 +1,11 @@
 ; ─────────────────────────────────────────────────────────────────────────────
 ; NOVA Assistant - Inno Setup Installer Script
 ; Build Command: Open this file in Inno Setup Compiler and click Build → Compile
-; Output: installer/NOVA-Setup-v1.0.0.exe
+; Output: installer/NOVA-Setup-v1.1.0.exe
 ; ─────────────────────────────────────────────────────────────────────────────
 
 #define MyAppName "NOVA"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "NOVA Team"
 #define MyAppURL "https://github.com/PRN-6/NOVA"
 #define MyAppExeName "NOVA.exe"
