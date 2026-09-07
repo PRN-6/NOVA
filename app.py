@@ -54,8 +54,10 @@ logger.info(f"NOVA starting — frozen={IS_FROZEN}, base={BASE_DIR}")
 logger.info(f"Log file: {LOG_FILE}")
 
 from speech.streamer import SpeechStreamer
-from actions.executor import execute_system_command
+from actions.executor import execute_system_command, execute_system_command_detailed
 from ui.manager import UIManager
+from server.remote_server import start_remote_server, stop_remote_server, get_remote_url
+import config
 
 
 def main() -> None:
@@ -85,9 +87,35 @@ def main() -> None:
             on_action_callback=ui_manager.on_action_completed
         )
 
+    def on_remote_command(text: str) -> dict:
+        """Callback hook executed when a command is dispatched from the Mobile Web Remote."""
+        logger.info(f"Mobile Remote Command: '{text}'")
+        if sys.stdout is not None:
+            try:
+                sys.stdout.write(f"\r[Mobile Remote] {text}\n")
+                sys.stdout.flush()
+            except Exception:
+                pass
+
+        ui_manager.on_transcription(text)
+        result = execute_system_command_detailed(
+            text,
+            on_action_callback=ui_manager.on_action_completed
+        )
+        return result
+
     try:
         # Start System Tray in background
         ui_manager.start_tray()
+
+        # Start Mobile Web Remote Server in background
+        if getattr(config, "ENABLE_REMOTE_SERVER", True):
+            remote_url = start_remote_server(
+                on_command_callback=on_remote_command,
+                host=getattr(config, "REMOTE_SERVER_HOST", "0.0.0.0"),
+                port=getattr(config, "REMOTE_SERVER_PORT", 8765)
+            )
+            logger.info(f"📱 Mobile Web Remote listening at: {remote_url}")
 
         # Initialize Audio Streamer
         streamer = SpeechStreamer()
@@ -115,6 +143,7 @@ def main() -> None:
         logger.critical(f"Unhandled fatal error in main thread: {e}", exc_info=True)
         sys.exit(1)
     finally:
+        stop_remote_server()
         logger.info("Cleanup completed. NOVA is offline.")
 
 

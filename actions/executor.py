@@ -21,21 +21,30 @@ def preload_ai_model():
     except Exception as e:
         logger.warning(f"could not preload ai model: {e}")
 
-def execute_system_command(text: str, on_action_callback = None) -> bool:
+def execute_system_command_detailed(text: str, on_action_callback = None) -> dict:
     """
-    Sends the user's speech to Qwen. Qwen selects the tool name, 
-    and we run the corresponding Python function.
+    Executes a command via Fast Lane Semantic Router or Ollama AI Fallback.
+    Returns a dict: {"success": bool, "tool": str, "method": str, "message": str}
     """
+    cleaned = text.strip()
+    if not cleaned:
+        return {"success": False, "tool": "None", "method": "none", "message": "Empty command"}
+
     # 1. Fast Lane (Instant Execution)
-    fast_tool = fast_router.route(text)
+    fast_tool = fast_router.route(cleaned)
     if fast_tool:
-        success = manager.execute_skill(fast_tool, text)
+        success = manager.execute_skill(fast_tool, cleaned)
         if on_action_callback:
             on_action_callback(fast_tool, success)
-        return success
+        return {
+            "success": success,
+            "tool": fast_tool,
+            "method": "fast_lane",
+            "message": f"Executed '{fast_tool}' via Fast Lane" if success else f"Failed executing '{fast_tool}'"
+        }
 
     # 2. Slow AI Lane (Fallback)
-    logger.info(f"Command '{text}' is complex. Sending to Ollama AI...")
+    logger.info(f"Command '{cleaned}' is complex. Sending to Ollama AI...")
     
     # Dynamically generate the system prompt based on active skills!
     available_tools = manager.get_system_prompt_descriptions()
@@ -61,25 +70,47 @@ def execute_system_command(text: str, on_action_callback = None) -> bool:
             },
             messages=[
                 {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': text}
+                {'role': 'user', 'content': cleaned}
             ]
         )
 
         selected_tool = response['message']['content'].strip()
-        logger.info(f"AI Selected: '{selected_tool}' for input: '{text}'")
+        logger.info(f"AI Selected: '{selected_tool}' for input: '{cleaned}'")
 
         if selected_tool != "None":
-            success = manager.execute_skill(selected_tool, text)
+            success = manager.execute_skill(selected_tool, cleaned)
             if on_action_callback:
                 on_action_callback(selected_tool, success)
-            return success
+            return {
+                "success": success,
+                "tool": selected_tool,
+                "method": "ai_lane",
+                "message": f"Executed '{selected_tool}' via AI Lane" if success else f"Failed executing '{selected_tool}'"
+            }
         else:
             if on_action_callback:
                 on_action_callback("Unknown", False)
+            return {
+                "success": False,
+                "tool": "Unknown",
+                "method": "ai_lane",
+                "message": "No matching tool found for command"
+            }
         
     except Exception as e:
         logger.error(f"Error communicating with local ai: {e}")
         if on_action_callback:
             on_action_callback("Error", False)
+        return {
+            "success": False,
+            "tool": "Error",
+            "method": "error",
+            "message": str(e)
+        }
 
-    return False
+def execute_system_command(text: str, on_action_callback = None) -> bool:
+    """
+    Sends user text to the router/skill manager. Returns True if successful.
+    """
+    result = execute_system_command_detailed(text, on_action_callback=on_action_callback)
+    return result["success"]

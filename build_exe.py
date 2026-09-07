@@ -27,6 +27,7 @@ def build():
         "--icon=assets\\icon.ico",
         "--add-data=plugins;plugins",
         "--add-data=skills;skills",
+        "--add-data=server;server",
         "--add-data=ui;ui",
         "--add-data=config.py;.",
         "--collect-all=faster_whisper",
@@ -36,6 +37,7 @@ def build():
         "--collect-all=PIL",
         "--collect-all=webview",
         "--collect-all=pyautogui",
+        "--collect-all=qrcode",
         "--hidden-import=pystray._win32",
         "--hidden-import=scipy.special.cython_special",
         "app.py"

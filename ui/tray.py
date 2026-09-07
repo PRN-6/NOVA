@@ -36,6 +36,7 @@ class SystemTray:
         menu = pystray.Menu(
             pystray.MenuItem("⚡ NOVA Assistant (Online)", lambda: None, enabled=False),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("📱 Open Mobile Web Remote", self._on_open_mobile_remote),
             pystray.MenuItem("⚙️ Control Center & Settings", self._on_open_plugins),
             pystray.MenuItem("👁️ Toggle HUD Overlay", self._on_toggle_hud),
             pystray.MenuItem("🔇 Mute / Pause", self._on_toggle_mute),
@@ -54,6 +55,10 @@ class SystemTray:
         tray_thread = threading.Thread(target=self.icon.run, daemon=True)
         tray_thread.start()
         logger.info("System Tray icon initialized.")
+
+    def _on_open_mobile_remote(self):
+        if self.ui_manager:
+            self.ui_manager.open_mobile_remote()
 
     def _on_open_plugins(self):
         if self.ui_manager:

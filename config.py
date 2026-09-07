@@ -40,3 +40,9 @@ WAKE_WORD_THRESHOLD = 0.50
 
 # Audio feedback sounds (True = beep on wake, False = silent)
 ENABLE_BEEP = False
+
+# Mobile Web Remote Server configuration
+ENABLE_REMOTE_SERVER = True
+REMOTE_SERVER_HOST = "0.0.0.0"
+REMOTE_SERVER_PORT = 8765
+
