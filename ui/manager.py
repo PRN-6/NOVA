@@ -15,6 +15,11 @@ class UIManager:
         self.hud = FloatingHUD()
         self.tray = SystemTray(ui_manager=self)
         self.is_muted = False
+        self.streamer = None
+
+    def set_streamer(self, streamer):
+        """Connects the active SpeechStreamer instance."""
+        self.streamer = streamer
 
     def start_tray(self):
         """Starts the tray in a background thread."""
@@ -55,8 +60,9 @@ class UIManager:
 
     def on_sleep(self):
         """Triggered when speech times out or returns to idle."""
-        self.hud.set_state("idle", text="Say 'Nova' to begin")
-        self.tray.set_status_color("#06B6D4")
+        if not self.is_muted:
+            self.hud.set_state("idle", text="Say 'Nova' to begin")
+            self.tray.set_status_color("#06B6D4")
 
     def toggle_hud(self):
         """Toggles HUD visibility on/off."""
@@ -78,14 +84,17 @@ class UIManager:
     def toggle_mute(self):
         """Toggles assistant listening state."""
         self.is_muted = not self.is_muted
+        if self.streamer:
+            self.streamer.set_muted(self.is_muted)
+
         if self.is_muted:
-            self.hud.set_state("idle", text="Assistant is muted")
+            self.hud.set_state("error", title="🔇 NOVA MUTED", text="Microphone input paused")
             self.tray.set_status_color("#EF4444")
-            logger.info("NOVA Muted.")
+            logger.info("NOVA Muted (Microphone Paused).")
         else:
-            self.hud.set_state("idle", text="Say 'Nova' to begin")
+            self.hud.set_state("success", title="🎙️ NOVA ACTIVE", text="Listening for 'Nova'...")
             self.tray.set_status_color("#06B6D4")
-            logger.info("NOVA Unmuted.")
+            logger.info("NOVA Unmuted (Microphone Listening).")
 
     def shutdown(self):
         """Gracefully shuts down HUD and application."""

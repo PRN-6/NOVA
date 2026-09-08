@@ -71,6 +71,7 @@ class SpeechStreamer:
                 raise
 
         
+        self.is_muted = False
         self.audio_queue: queue.Queue = queue.Queue()
         self.stream = sd.InputStream(
             samplerate = self.sample_rate,
@@ -80,12 +81,31 @@ class SpeechStreamer:
             callback = self._audio_callback,
         )
 
+    def set_muted(self, muted: bool) -> None:
+        """Sets the microphone mute state."""
+        self.is_muted = muted
+        if muted:
+            self.is_active = False
+            # Clear any pending audio
+            while not self.audio_queue.empty():
+                try:
+                    self.audio_queue.get_nowait()
+                except queue.Empty:
+                    break
+        logger.info(f"SpeechStreamer microphone {'MUTED' if muted else 'UNMUTED'}.")
+
+    def toggle_mute(self) -> bool:
+        """Toggles the microphone mute state. Returns new muted state."""
+        self.set_muted(not self.is_muted)
+        return self.is_muted
+
     def _audio_callback(self, indata: np.ndarray, frames: int, time: dict, status: sd.CallbackFlags) -> None:
-        #callback executed for each audio buffer
+        # callback executed for each audio buffer
         if status:
             logger.warning(f"Audio stream status flag set: {status}")
-        #queue the audio buffer to be processed by the whisper model
-        self.audio_queue.put(indata.copy())
+        # If muted, do not queue audio to whisper
+        if not self.is_muted:
+            self.audio_queue.put(indata.copy())
     
     def start(
         self,
@@ -115,7 +135,19 @@ class SpeechStreamer:
         try:
             with self.stream:
                 while self.stream.active:
-                    chunk = self.audio_queue.get()
+                    if self.is_muted:
+                        idle_buffer.clear()
+                        audio_buffer.clear()
+                        if on_audio_energy_callback:
+                            on_audio_energy_callback(0.0)
+                        import time as _t
+                        _t.sleep(0.05)
+                        continue
+
+                    try:
+                        chunk = self.audio_queue.get(timeout=0.1)
+                    except queue.Empty:
+                        continue
 
                     # 1. Idle state: Listen for "Nova" via Whisper
                     if not self.is_active:
@@ -123,6 +155,7 @@ class SpeechStreamer:
                         idle_buffer.append(chunk)
 
                         if len(idle_buffer) >= IDLE_WINDOW_CHUNKS:
+
                             # Transcribe the short idle buffer using Whisper
                             idle_audio = np.concatenate(idle_buffer).flatten()
 

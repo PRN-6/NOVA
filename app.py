@@ -125,6 +125,7 @@ def main() -> None:
 
         # Initialize Audio Streamer
         streamer = SpeechStreamer()
+        ui_manager.set_streamer(streamer)
 
         # Run speech streamer in a dedicated worker thread
         audio_thread = threading.Thread(

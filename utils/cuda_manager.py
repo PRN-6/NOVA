@@ -6,6 +6,7 @@ import logging
 import zipfile
 import threading
 import urllib.request
+import json
 import subprocess
 from typing import Dict, Any, List, Optional, Callable
 
@@ -16,10 +17,11 @@ APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "NOVA"
 APPDATA_CUDA_DIR = os.path.join(APPDATA_DIR, "cuda")
 APPDATA_CUDA_BIN = os.path.join(APPDATA_CUDA_DIR, "bin")
 
-# Official / Community lightweight CUDA 12 runtime zip mirror for faster-whisper (cuBLAS + cuDNN)
-# The user can download in-app or click the link to download manually in browser.
-CUDA_RUNTIME_DOWNLOAD_URL = "https://github.com/Purfview/whisper-standalone-win/releases/download/libs/CUDA12_cuBLAS_cuDNN_x64.zip"
-CUDA_RUNTIME_FALLBACK_URL = "https://github.com/PRN-6/NOVA/releases/download/v1.1.0/cuda12_runtime.zip"
+# PyPI packages required for ctranslate2 / faster-whisper on CUDA 12 Windows
+CUDA_PACKAGES = [
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12"
+]
 
 _download_state: Dict[str, Any] = {
     "is_downloading": False,
@@ -144,8 +146,7 @@ def get_cuda_status() -> Dict[str, Any]:
         "dll_count": len(dlls),
         "is_ready": is_ready,
         "cuda_appdata_dir": APPDATA_CUDA_DIR,
-        "download_url": CUDA_RUNTIME_DOWNLOAD_URL,
-        "manual_guide_url": "https://github.com/PRN-6/NOVA#gpu-acceleration-setup",
+        "download_url": "https://pypi.org/project/nvidia-cublas-cu12/",
         "download_state": get_download_progress()
     }
 
@@ -156,9 +157,24 @@ def get_download_progress() -> Dict[str, Any]:
         return dict(_download_state)
 
 
+def _get_wheel_url(package_name: str) -> Optional[str]:
+    """Queries PyPI JSON API to get the official Windows AMD64 wheel URL."""
+    try:
+        api_url = f"https://pypi.org/pypi/{package_name}/json"
+        req = urllib.request.Request(api_url, headers={"User-Agent": "NOVA-Assistant-Installer/1.1"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            for file_info in data.get("urls", []):
+                filename = file_info.get("filename", "")
+                if "win_amd64" in filename and filename.endswith(".whl"):
+                    return file_info.get("url")
+    except Exception as e:
+        logger.warning(f"Could not query PyPI for {package_name}: {e}")
+    return None
+
+
 def start_cuda_runtime_download(
-    on_complete: Optional[Callable[[bool, str], None]] = None,
-    custom_url: Optional[str] = None
+    on_complete: Optional[Callable[[bool, str], None]] = None
 ) -> Dict[str, Any]:
     """
     Starts asynchronous download and extraction of CUDA 12 runtime DLLs
@@ -177,67 +193,95 @@ def start_cuda_runtime_download(
             "error": None
         }
 
-    url = custom_url or CUDA_RUNTIME_DOWNLOAD_URL
-
     def _worker():
         global _download_state
-        zip_path = os.path.join(APPDATA_DIR, "cuda_runtime_temp.zip")
         try:
             os.makedirs(APPDATA_CUDA_BIN, exist_ok=True)
 
-            logger.info(f"Downloading CUDA runtime from {url}...")
-            with _download_lock:
-                _download_state["status"] = "Connecting to server..."
+            # Step 1: Check if local venv already has the DLLs (instant copy)
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            local_copied = 0
+            for pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
+                local_bin = os.path.join(project_root, ".venv", "Lib", "site-packages", "nvidia", pkg, "bin")
+                if os.path.isdir(local_bin):
+                    for fname in os.listdir(local_bin):
+                        if fname.lower().endswith(".dll"):
+                            src = os.path.join(local_bin, fname)
+                            dst = os.path.join(APPDATA_CUDA_BIN, fname)
+                            shutil.copy2(src, dst)
+                            local_copied += 1
 
-            # Setup HTTP Request with browser-like user agent
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NOVA-Assistant/1.1"})
-            with urllib.request.urlopen(req, timeout=30) as response, open(zip_path, "wb") as out_file:
-                total_size = response.length or 0
-                total_mb = round(total_size / (1024 * 1024), 1) if total_size > 0 else 0.0
-
+            if local_copied >= 10:
+                logger.info(f"Copied {local_copied} CUDA DLLs from local environment.")
+                register_cuda_dlls()
                 with _download_lock:
-                    _download_state["total_mb"] = total_mb
-                    _download_state["status"] = f"Downloading CUDA runtime (~{total_mb} MB)..."
+                    _download_state["is_downloading"] = False
+                    _download_state["progress"] = 100
+                    _download_state["status"] = "CUDA 12 Runtime installed successfully!"
+                    _download_state["error"] = None
+                if on_complete:
+                    on_complete(True, "CUDA runtime installed successfully!")
+                return
 
-                downloaded = 0
-                chunk_size = 1024 * 64  # 64 KB chunks
-
-                while True:
-                    chunk = response.read(chunk_size)
-                    if not chunk:
-                        break
-                    out_file.write(chunk)
-                    downloaded += len(chunk)
-                    dl_mb = round(downloaded / (1024 * 1024), 1)
-                    pct = int((downloaded / total_size) * 100) if total_size > 0 else 50
-
-                    with _download_lock:
-                        _download_state["progress"] = pct
-                        _download_state["downloaded_mb"] = dl_mb
-
-            # Extraction
+            # Step 2: Fetch PyPI Wheel URLs for cuBLAS and cuDNN
             with _download_lock:
-                _download_state["status"] = "Extracting runtime libraries..."
-                _download_state["progress"] = 95
+                _download_state["status"] = "Resolving CUDA runtime packages from PyPI..."
 
-            logger.info(f"Extracting {zip_path} to {APPDATA_CUDA_BIN}...")
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                for member in zip_ref.namelist():
-                    filename = os.path.basename(member)
-                    if not filename:
-                        continue
-                    # Extract DLLs directly into APPDATA_CUDA_BIN
-                    if filename.lower().endswith(".dll"):
-                        source = zip_ref.open(member)
-                        target_file = os.path.join(APPDATA_CUDA_BIN, filename)
-                        with open(target_file, "wb") as target:
-                            shutil.copyfileobj(source, target)
+            package_urls = []
+            for pkg in CUDA_PACKAGES:
+                w_url = _get_wheel_url(pkg)
+                if w_url:
+                    package_urls.append((pkg, w_url))
+                else:
+                    raise RuntimeError(f"Could not locate Windows download URL for {pkg}")
 
-            # Cleanup temp zip
-            try:
-                os.remove(zip_path)
-            except Exception:
-                pass
+            # Step 3: Download & Extract Each Wheel (Whl is standard Zip format)
+            total_pkgs = len(package_urls)
+            for idx, (pkg_name, url) in enumerate(package_urls):
+                with _download_lock:
+                    _download_state["status"] = f"Downloading {pkg_name} ({idx + 1}/{total_pkgs})..."
+
+                temp_whl = os.path.join(APPDATA_DIR, f"{pkg_name}_temp.whl")
+                req = urllib.request.Request(url, headers={"User-Agent": "NOVA-Assistant/1.1"})
+
+                with urllib.request.urlopen(req, timeout=30) as response, open(temp_whl, "wb") as out_file:
+                    pkg_size = response.length or (400 * 1024 * 1024)
+                    downloaded = 0
+                    chunk_size = 1024 * 128  # 128 KB chunks
+
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
+                        downloaded += len(chunk)
+
+                        overall_pct = int(((idx + (downloaded / pkg_size)) / total_pkgs) * 90)
+                        dl_mb = round(downloaded / (1024 * 1024), 1)
+
+                        with _download_lock:
+                            _download_state["progress"] = overall_pct
+                            _download_state["downloaded_mb"] = dl_mb
+                            _download_state["total_mb"] = round(pkg_size / (1024 * 1024), 1)
+
+                # Extract DLLs directly into APPDATA_CUDA_BIN
+                with _download_lock:
+                    _download_state["status"] = f"Extracting {pkg_name} DLLs..."
+
+                with zipfile.ZipFile(temp_whl, 'r') as zip_ref:
+                    for member in zip_ref.namelist():
+                        fname = os.path.basename(member)
+                        if fname.lower().endswith(".dll"):
+                            src = zip_ref.open(member)
+                            dst_file = os.path.join(APPDATA_CUDA_BIN, fname)
+                            with open(dst_file, "wb") as dst:
+                                shutil.copyfileobj(src, dst)
+
+                # Cleanup temp file
+                try:
+                    os.remove(temp_whl)
+                except Exception:
+                    pass
 
             # Register DLLs immediately into runtime
             register_cuda_dlls()
@@ -245,7 +289,7 @@ def start_cuda_runtime_download(
             with _download_lock:
                 _download_state["is_downloading"] = False
                 _download_state["progress"] = 100
-                _download_state["status"] = "Installation Complete! Restart NOVA to activate GPU mode."
+                _download_state["status"] = "CUDA 12 Runtime successfully installed! Ready."
                 _download_state["error"] = None
 
             logger.info("CUDA runtime successfully downloaded, extracted and registered.")
