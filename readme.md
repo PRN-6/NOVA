@@ -28,7 +28,12 @@ NOVA is a high-performance, locally-hosted AI voice assistant built in Python. D
 ### Prerequisites
 - Python 3.10+
 - An NVIDIA GPU (Highly recommended for CUDA acceleration, though CPU fallback is supported)
-- [Ollama](https://ollama.ai/) installed locally (if you wish to use the AI chat features)
+- [Ollama](https://ollama.ai/) installed and running locally
+  - Required model: **`qwen2.5:0.5b`** (used for AI intent reasoning and fallback skills)
+  - Pull the model before running NOVA:
+    ```powershell
+    ollama pull qwen2.5:0.5b
+    ```
 
 ### 1. Clone & Environment Setup
 Clone the repository and create a Python virtual environment:
