@@ -5,15 +5,21 @@
 import ctypes
 import subprocess
 
-def _cuda_available() -> bool:
-    """Check if an NVIDIA CUDA-capable GPU is accessible at runtime."""
-    try:
-        ctypes.WinDLL("nvcuda.dll")
-        return True
-    except OSError:
-        return False
+try:
+    from utils.cuda_manager import register_cuda_dlls, get_cuda_status
+    register_cuda_dlls()
+    _status = get_cuda_status()
+    _HAS_CUDA = _status["is_ready"]
+except Exception:
+    def _cuda_available() -> bool:
+        try:
+            import ctypes
+            ctypes.WinDLL("nvcuda.dll")
+            return True
+        except OSError:
+            return False
+    _HAS_CUDA = _cuda_available()
 
-_HAS_CUDA = _cuda_available()
 
 # Audio Stream Settings (16kHz, 1280 samples = 80ms frames required by openWakeWord)
 SAMPLE_RATE = 16000

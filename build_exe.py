@@ -7,15 +7,21 @@ def build():
     print("         NOVA Standalone EXE Build Pipeline       ")
     print("=" * 50)
 
-    # 2. Check for CUDA 12 runtime DLLs
+    # Check for optional CUDA bundling flag
+    bundle_cuda = "--bundle-cuda" in sys.argv
     nvidia_bin_datas = []
-    venv_nvidia = os.path.join(".venv", "Lib", "site-packages", "nvidia")
-    if os.path.isdir(venv_nvidia):
-        for pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
-            bin_path = os.path.join(venv_nvidia, pkg, "bin")
-            if os.path.isdir(bin_path):
-                nvidia_bin_datas.append(f"--add-data={bin_path};nvidia/{pkg}/bin")
-                print(f"[+] Added CUDA package: {pkg}")
+    
+    if bundle_cuda:
+        print("[*] Full offline CUDA bundling enabled via --bundle-cuda")
+        venv_nvidia = os.path.join(".venv", "Lib", "site-packages", "nvidia")
+        if os.path.isdir(venv_nvidia):
+            for pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
+                bin_path = os.path.join(venv_nvidia, pkg, "bin")
+                if os.path.isdir(bin_path):
+                    nvidia_bin_datas.append(f"--add-data={bin_path};nvidia/{pkg}/bin")
+                    print(f"[+] Added bundled CUDA package: {pkg}")
+    else:
+        print("[*] Building Slim Lightweight Package (CUDA downloaded on-demand in-app)")
 
     # 3. Assemble PyInstaller Build Command
     cmd = [
@@ -29,6 +35,7 @@ def build():
         "--add-data=skills;skills",
         "--add-data=server;server",
         "--add-data=ui;ui",
+        "--add-data=utils;utils",
         "--add-data=config.py;.",
         "--collect-all=faster_whisper",
         "--collect-all=ctranslate2",

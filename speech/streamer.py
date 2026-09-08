@@ -50,10 +50,26 @@ class SpeechStreamer:
             # Warm up GPU inference so first command is instant
             _warmup = np.zeros(config.SAMPLE_RATE, dtype=np.float32)
             list(self.model.transcribe(_warmup, beam_size=1, without_timestamps=True)[0])
-            logger.info("Whisper model warmed up on GPU.")
+            logger.info(f"Whisper model warmed up on {config.WHISPER_DEVICE}.")
         except Exception as e:
-            logger.error(f"failed to load whisper model: {e}")
-            raise
+            if config.WHISPER_DEVICE == "cuda":
+                logger.warning(f"Failed to load Whisper model on CUDA ({e}). Falling back to multi-core CPU (int8)...")
+                try:
+                    self.model = WhisperModel(
+                        config.WHISPER_MODEL_SIZE,
+                        device="cpu",
+                        compute_type="int8",
+                        num_workers=1,
+                        cpu_threads=4,
+                    )
+                    logger.info("Whisper model successfully loaded on CPU (int8 fallback mode).")
+                except Exception as cpu_e:
+                    logger.error(f"Failed to load Whisper model on CPU fallback: {cpu_e}")
+                    raise
+            else:
+                logger.error(f"failed to load whisper model: {e}")
+                raise
+
         
         self.audio_queue: queue.Queue = queue.Queue()
         self.stream = sd.InputStream(

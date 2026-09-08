@@ -226,64 +226,51 @@ class DashboardAPI:
         # 2. NVIDIA GPU & CUDA Acceleration
         gpu_checks = []
         try:
-            r = subprocess.run(
-                ["nvidia-smi", "--query-gpu=name,memory.total,memory.free,driver_version", "--format=csv,noheader"],
-                capture_output=True, text=True, timeout=4
-            )
-            if r.returncode == 0 and r.stdout.strip():
-                parts = [p.strip() for p in r.stdout.strip().split(",")]
-                name = parts[0] if len(parts) > 0 else "NVIDIA GPU"
-                total_mem = parts[1] if len(parts) > 1 else "?"
-                free_mem = parts[2] if len(parts) > 2 else "?"
-                driver = parts[3] if len(parts) > 3 else "?"
+            from utils.cuda_manager import get_cuda_status
+            cuda_stat = get_cuda_status()
+            
+            if cuda_stat["has_gpu"]:
                 gpu_checks.append({
                     "name": "NVIDIA GPU",
                     "status": "ok",
-                    "detail": f"{name} • {free_mem} free / {total_mem} • Driver {driver}",
+                    "detail": f"{cuda_stat['gpu_name']} • {cuda_stat['free_memory']} free / {cuda_stat['total_memory']} • Driver {cuda_stat['driver_version']}",
                     "link": None
                 })
+
+                if cuda_stat["has_cuda_dlls"]:
+                    gpu_checks.append({
+                        "name": "CUDA 12 Runtime",
+                        "status": "ok",
+                        "detail": f"GPU Acceleration Active • {cuda_stat['dll_count']} CUDA libraries loaded",
+                        "link": None,
+                        "can_download": False
+                    })
+                else:
+                    gpu_checks.append({
+                        "name": "CUDA 12 Runtime",
+                        "status": "warn",
+                        "detail": "CUDA runtime libraries not installed. Speech engine is running in CPU mode.",
+                        "link": cuda_stat["download_url"],
+                        "can_download": True,
+                        "action": "download_cuda",
+                        "action_label": "Download CUDA (~450MB)"
+                    })
             else:
                 gpu_checks.append({
-                    "name": "NVIDIA GPU",
-                    "status": "warn",
-                    "detail": "nvidia-smi returned no data. Speech recognition will run on CPU.",
+                    "name": "Hardware Compute Engine",
+                    "status": "ok",
+                    "detail": "Running on Multi-core CPU (Quantized INT8). Fast and zero setup required.",
                     "link": None
                 })
-        except Exception:
+        except Exception as e:
             gpu_checks.append({
-                "name": "NVIDIA GPU",
-                "status": "warn",
-                "detail": "No dedicated NVIDIA GPU detected. Whisper will use multi-core CPU.",
+                "name": "Hardware Compute Engine",
+                "status": "ok",
+                "detail": f"Default CPU mode active: {e}",
                 "link": None
             })
 
-        # CUDA Runtime & cuBLAS DLL check
-        cublas_found = False
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        for search_dir in [
-            os.path.join(project_root, ".venv", "Lib", "site-packages", "nvidia", "cublas", "bin"),
-            os.path.join(project_root, "nvidia", "cublas", "bin")
-        ]:
-            if os.path.isdir(search_dir):
-                dlls = [f for f in os.listdir(search_dir) if f.endswith(".dll")]
-                if dlls:
-                    cublas_found = True
-                    gpu_checks.append({
-                        "name": "CUDA 12 Runtime (cuBLAS)",
-                        "status": "ok",
-                        "detail": f"Active • {len(dlls)} CUDA runtime libraries loaded",
-                        "link": None
-                    })
-                    break
-        if not cublas_found:
-            gpu_checks.append({
-                "name": "CUDA 12 Runtime (cuBLAS)",
-                "status": "warn",
-                "detail": "cuBLAS DLLs not detected in package paths. GPU mode may fallback to CPU.",
-                "link": None
-            })
-
-        sections.append({"title": "NVIDIA GPU & Acceleration", "icon": "zap", "items": gpu_checks})
+        sections.append({"title": "Hardware Acceleration & Compute", "icon": "zap", "items": gpu_checks})
 
         # 3. Audio & Hardware Input
         hw_checks = []
@@ -349,7 +336,36 @@ class DashboardAPI:
             logger.error(f"Failed to open URL {url}: {e}")
         return False
 
+    # ---------------- CUDA & Acceleration Setup ---------------- #
+
+    def get_cuda_status(self) -> Dict[str, Any]:
+        """Returns full CUDA detection and acceleration status."""
+        try:
+            from utils.cuda_manager import get_cuda_status
+            return get_cuda_status()
+        except Exception as e:
+            logger.error(f"Error getting CUDA status: {e}")
+            return {"has_gpu": False, "has_cuda_dlls": False, "is_ready": False, "error": str(e)}
+
+    def start_cuda_download(self) -> Dict[str, Any]:
+        """Starts asynchronous download & installation of CUDA runtime DLLs."""
+        try:
+            from utils.cuda_manager import start_cuda_runtime_download
+            return start_cuda_runtime_download()
+        except Exception as e:
+            logger.error(f"Error starting CUDA download: {e}")
+            return {"success": False, "message": str(e)}
+
+    def get_cuda_download_progress(self) -> Dict[str, Any]:
+        """Returns the current progress of CUDA runtime download."""
+        try:
+            from utils.cuda_manager import get_download_progress
+            return get_download_progress()
+        except Exception as e:
+            return {"is_downloading": False, "progress": 0, "error": str(e)}
+
     def close_window(self):
         """Closes the dashboard window."""
         if hasattr(self, "_window") and self._window:
             self._window.destroy()
+

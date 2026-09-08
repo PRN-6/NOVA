@@ -18,19 +18,25 @@ LOG_FILE = os.path.join(APPDATA_DIR, "nova.log")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. CUDA 12 Runtime DLL paths (required by faster-whisper / ctranslate2)
-#    Search both frozen (dist/NOVA/nvidia/*) and source (.venv) locations.
+#    Search AppData (downloaded on demand), frozen bundle, and .venv.
 # ─────────────────────────────────────────────────────────────────────────────
-for _pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
-    for _candidate in [
-        os.path.join(BASE_DIR, "nvidia", _pkg, "bin"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), ".venv", "Lib", "site-packages", "nvidia", _pkg, "bin"),
-    ]:
-        if os.path.isdir(_candidate):
-            try:
-                os.add_dll_directory(_candidate)
-                os.environ["PATH"] = _candidate + os.pathsep + os.environ["PATH"]
-            except Exception:
-                pass
+try:
+    from utils.cuda_manager import register_cuda_dlls
+    register_cuda_dlls()
+except Exception:
+    for _pkg in ["cublas", "cudnn", "cuda_nvrtc"]:
+        for _candidate in [
+            os.path.join(APPDATA_DIR, "cuda", "bin"),
+            os.path.join(BASE_DIR, "nvidia", _pkg, "bin"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), ".venv", "Lib", "site-packages", "nvidia", _pkg, "bin"),
+        ]:
+            if os.path.isdir(_candidate):
+                try:
+                    os.add_dll_directory(_candidate)
+                    os.environ["PATH"] = _candidate + os.pathsep + os.environ["PATH"]
+                except Exception:
+                    pass
+
 
 import logging
 import threading

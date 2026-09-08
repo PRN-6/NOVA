@@ -608,8 +608,29 @@
               dotColor = 'bg-rose-400';
             }
 
+            let actionBtn = '';
+            if (item.can_download) {
+              actionBtn = `
+                <div class="flex items-center space-x-2 shrink-0 ml-4">
+                  <button onclick="startCudaDownload()" id="cuda-dl-btn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-bold text-xs transition-all shadow-md shadow-cyan-500/20">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Download CUDA (~450MB)</span>
+                  </button>
+                  <button onclick="window.pywebview.api.open_external_url('${item.link}')" class="p-1.5 rounded-lg bg-nova-surface2 hover:bg-nova-border text-slate-400 hover:text-white text-xs" title="Download manually in browser">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              `;
+            } else if (item.link && item.status !== 'ok') {
+              actionBtn = `
+                <button onclick="window.pywebview.api.open_external_url('${item.link}')" class="px-2.5 py-1 rounded bg-nova-surface2 border border-nova-border text-cyan-400 hover:text-cyan-300 text-[11px] font-semibold shrink-0 ml-4">
+                  Install
+                </button>
+              `;
+            }
+
             return `
-              <div class="flex items-start justify-between p-3 rounded-xl bg-nova-surface border border-nova-border/60">
+              <div class="flex items-start justify-between p-3.5 rounded-xl bg-nova-surface border border-nova-border/60">
                 <div class="flex items-start space-x-3">
                   <div class="w-2.5 h-2.5 rounded-full ${dotColor} mt-1.5 shrink-0"></div>
                   <div>
@@ -617,11 +638,7 @@
                     <p class="text-[11px] text-slate-400 mt-0.5">${item.detail}</p>
                   </div>
                 </div>
-                ${item.link && item.status !== 'ok' ? `
-                  <button onclick="window.pywebview.api.open_external_url('${item.link}')" class="px-2.5 py-1 rounded bg-nova-surface2 border border-nova-border text-cyan-400 hover:text-cyan-300 text-[11px] font-semibold shrink-0 ml-4">
-                    Install
-                  </button>
-                ` : ''}
+                ${actionBtn}
               </div>
             `;
           }).join('');
@@ -641,6 +658,128 @@
         container.innerHTML = `<div class="p-4 text-rose-400 text-xs">Error loading diagnostics: ${err.toString()}</div>`;
       }
     }
+
+    // CUDA Download Manager
+    let cudaPollTimer = null;
+    async function startCudaDownload() {
+      if (!window.pywebview || !window.pywebview.api) return;
+      const btn = document.getElementById('cuda-dl-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Starting...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await window.pywebview.api.start_cuda_download();
+        if (res.success) {
+          showToast("CUDA Runtime download started!");
+          showCudaProgressModal();
+          pollCudaProgress();
+        } else {
+          showToast(res.message || "Failed to start download.", true);
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="download" class="w-3.5 h-3.5"></i><span>Retry Download</span>`;
+            lucide.createIcons();
+          }
+        }
+      } catch (err) {
+        showToast(err.toString(), true);
+      }
+    }
+
+    function showCudaProgressModal() {
+      let modal = document.getElementById('cuda-progress-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'cuda-progress-modal';
+        modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+        modal.innerHTML = `
+          <div class="bg-nova-card border border-nova-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                  <i data-lucide="zap" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white">Installing CUDA 12 Runtime</h3>
+                  <p class="text-[11px] text-slate-400">Enables real-time NVIDIA GPU acceleration</p>
+                </div>
+              </div>
+              <span id="cuda-pct" class="text-xs font-mono font-bold text-cyan-400">0%</span>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="w-full h-2.5 bg-nova-surface rounded-full overflow-hidden border border-nova-border">
+              <div id="cuda-bar" class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 w-0 transition-all duration-300"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <span id="cuda-status-text">Connecting to download mirror...</span>
+              <span id="cuda-bytes" class="font-mono">0.0 MB / ~450 MB</span>
+            </div>
+
+            <div class="pt-2 border-t border-nova-border/50 flex justify-end space-x-2">
+              <button onclick="closeCudaModal()" id="cuda-modal-close" class="px-4 py-1.5 rounded-xl bg-nova-surface hover:bg-nova-surface2 border border-nova-border text-xs text-slate-300 font-medium transition-all">
+                Run in Background
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        lucide.createIcons();
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeCudaModal() {
+      const modal = document.getElementById('cuda-progress-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function pollCudaProgress() {
+      if (cudaPollTimer) clearInterval(cudaPollTimer);
+      cudaPollTimer = setInterval(async () => {
+        if (!window.pywebview || !window.pywebview.api) return;
+        try {
+          const prog = await window.pywebview.api.get_cuda_download_progress();
+          const bar = document.getElementById('cuda-bar');
+          const pct = document.getElementById('cuda-pct');
+          const status = document.getElementById('cuda-status-text');
+          const bytes = document.getElementById('cuda-bytes');
+
+          if (bar) bar.style.width = prog.progress + '%';
+          if (pct) pct.innerText = prog.progress + '%';
+          if (status) status.innerText = prog.status || 'Downloading...';
+          if (bytes) bytes.innerText = `${prog.downloaded_mb || 0} MB / ${prog.total_mb ? prog.total_mb + ' MB' : '~450 MB'}`;
+
+          if (!prog.is_downloading) {
+            clearInterval(cudaPollTimer);
+            cudaPollTimer = null;
+            if (prog.error) {
+              showToast("CUDA download failed: " + prog.error, true);
+              if (status) status.innerHTML = `<span class="text-rose-400">Error: ${prog.error}</span>`;
+            } else {
+              showToast("CUDA Runtime installed successfully!");
+              if (status) status.innerHTML = `<span class="text-emerald-400 font-semibold">Ready! Restart NOVA to activate GPU.</span>`;
+              const closeBtn = document.getElementById('cuda-modal-close');
+              if (closeBtn) {
+                closeBtn.innerText = 'Close & Refresh';
+                closeBtn.onclick = () => {
+                  closeCudaModal();
+                  loadDiagnostics();
+                };
+              }
+              loadDiagnostics();
+            }
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+        }
+      }, 600);
+    }
+
 
     // Microphone Level Test
     async function testMic() {
