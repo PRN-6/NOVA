@@ -4,7 +4,7 @@ import sys
 from ui.hud import FloatingHUD
 from ui.tray import SystemTray
 
-logger = logging.getLogger("SANA.UIManager")
+logger = logging.getLogger("PRIVACY68.UIManager")
 
 class UIManager:
     """
@@ -61,7 +61,8 @@ class UIManager:
     def on_sleep(self):
         """Triggered when speech times out or returns to idle."""
         if not self.is_muted:
-            self.hud.set_state("idle", text="Say 'Sana' to begin")
+            wake_name = (self.streamer.wake_word if self.streamer else "Privacy68").title()
+            self.hud.set_state("idle", text=f"Say '{wake_name}' to begin")
             self.tray.set_status_color("#EF4444")
 
     def toggle_hud(self):
@@ -87,14 +88,15 @@ class UIManager:
         if self.streamer:
             self.streamer.set_muted(self.is_muted)
 
+        wake_name = (self.streamer.wake_word if self.streamer else "Privacy68").title()
         if self.is_muted:
-            self.hud.set_state("error", title="🔇 SANA MUTED", text="Microphone input paused")
+            self.hud.set_state("error", title="🔇 PRIVACY68 MUTED", text="Microphone input paused")
             self.tray.set_status_color("#EF4444")
-            logger.info("SANA Muted (Microphone Paused).")
+            logger.info("PRIVACY68 Muted (Microphone Paused).")
         else:
-            self.hud.set_state("success", title="🎙️ SANA ACTIVE", text="Listening for 'Sana'...")
+            self.hud.set_state("success", title="🎙️ PRIVACY68 ACTIVE", text=f"Listening for '{wake_name}'...")
             self.tray.set_status_color("#EF4444")
-            logger.info("SANA Unmuted (Microphone Listening).")
+            logger.info("PRIVACY68 Unmuted (Microphone Listening).")
 
     def shutdown(self):
         """Gracefully shuts down HUD and application."""

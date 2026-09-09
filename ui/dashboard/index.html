@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SANA Control Center</title>
-  
+  <title>PRIVACY68 Control Center</title>
+
   <!-- Tailwind CSS & Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -38,7 +39,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@600;800&display=swap"
+    rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
@@ -47,13 +50,16 @@
       width: 5px;
       height: 5px;
     }
+
     ::-webkit-scrollbar-track {
       background: #0A0A0D;
     }
+
     ::-webkit-scrollbar-thumb {
       background: #242430;
       border-radius: 9999px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: #E11D48;
     }
@@ -62,16 +68,19 @@
     .glow-red {
       box-shadow: 0 0 25px -4px rgba(239, 68, 68, 0.3);
     }
+
     .glow-crimson {
       box-shadow: 0 0 25px -4px rgba(225, 29, 72, 0.3);
     }
   </style>
 </head>
 
-<body class="bg-nova-bg text-slate-100 font-sans antialiased h-screen flex flex-col select-none overflow-hidden border border-nova-border/60">
+<body
+  class="bg-nova-bg text-slate-100 font-sans antialiased h-screen flex flex-col select-none overflow-hidden border border-nova-border/60">
 
   <!-- ================= TOP TITLE BAR ================= -->
-  <header class="h-16 bg-nova-surface/90 backdrop-blur border-b border-nova-border px-6 flex items-center justify-between shrink-0">
+  <header
+    class="h-16 bg-nova-surface/90 backdrop-blur border-b border-nova-border px-6 flex items-center justify-between shrink-0">
     <div class="flex items-center space-x-3">
       <!-- SANA logo: glowing scarlet ruby orb + metallic red wordmark + badge -->
       <div class="flex items-center gap-2.5">
@@ -94,7 +103,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-          ">SANA</h1>
+          ">PRIVACY68</h1>
           <span style="
             font-size: 10px;
             background: rgba(239, 68, 68, 0.12);
@@ -117,14 +126,16 @@
 
     <!-- Right status pill & close -->
     <div class="flex items-center space-x-4">
-      <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-nova-card border border-nova-border text-xs text-slate-300">
+      <div
+        class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-nova-card border border-nova-border text-xs text-slate-300">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span class="font-medium" id="header-user-tag">User</span>
         <span class="text-slate-600">•</span>
         <span class="text-emerald-400 font-mono text-[11px]">ONLINE</span>
       </div>
 
-      <button onclick="closeApp()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-nova-surface2 transition-colors">
+      <button onclick="closeApp()"
+        class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-nova-surface2 transition-colors">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
     </div>
@@ -132,25 +143,35 @@
 
   <!-- ================= MAIN LAYOUT (SIDEBAR + CONTENT) ================= -->
   <div class="flex flex-1 overflow-hidden">
-    
+
     <!-- SIDEBAR NAVIGATION -->
     <aside class="w-64 bg-nova-surface/50 border-r border-nova-border p-4 flex flex-col justify-between shrink-0">
       <div class="space-y-1.5">
         <div class="px-3 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Navigation</div>
 
-        <button onclick="switchTab('tab-plugins')" id="nav-tab-plugins" class="nav-btn active w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-white bg-gradient-to-r from-red-500/20 to-transparent border-l-2 border-red-500">
+        <button onclick="switchTab('tab-plugins')" id="nav-tab-plugins"
+          class="nav-btn active w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-white bg-gradient-to-r from-red-500/20 to-transparent border-l-2 border-red-500">
           <i data-lucide="puzzle" class="w-4 h-4 text-red-400"></i>
           <span>Plugin Hub</span>
-          <span id="plugins-count-badge" class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-nova-surface2 text-slate-300 font-mono">...</span>
+          <span id="plugins-count-badge"
+            class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-nova-surface2 text-slate-300 font-mono">...</span>
         </button>
 
-        <button onclick="switchTab('tab-creator')" id="nav-tab-creator" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-nova-surface2">
+        <button onclick="switchTab('tab-creator')" id="nav-tab-creator"
+          class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-nova-surface2">
           <i data-lucide="wrench" class="w-4 h-4 text-rose-400"></i>
           <span>Plugin Studio</span>
         </button>
 
-        <button onclick="switchTab('tab-diagnostics')" id="nav-tab-diagnostics" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-nova-surface2">
-          <i data-lucide="activity" class="w-4 h-4 text-red-400"></i>
+        <button onclick="switchTab('tab-voice')" id="nav-tab-voice"
+          class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-nova-surface2">
+          <i data-lucide="mic" class="w-4 h-4 text-red-400"></i>
+          <span>Voice & Wake Word</span>
+        </button>
+
+        <button onclick="switchTab('tab-diagnostics')" id="nav-tab-diagnostics"
+          class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-nova-surface2">
+          <i data-lucide="activity" class="w-4 h-4 text-rose-400"></i>
           <span>Diagnostics</span>
         </button>
       </div>
@@ -184,7 +205,8 @@
           </div>
           <div class="relative w-64">
             <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
-            <input type="text" id="plugin-search" oninput="filterPlugins()" placeholder="Search plugins..." class="w-full bg-nova-surface border border-nova-border rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-red-500">
+            <input type="text" id="plugin-search" oninput="filterPlugins()" placeholder="Search plugins..."
+              class="w-full bg-nova-surface border border-nova-border rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-red-500">
           </div>
         </div>
 
@@ -202,7 +224,8 @@
       <section id="tab-creator" class="tab-content hidden space-y-6 max-w-3xl">
         <div>
           <h2 class="text-xl font-bold text-white tracking-tight">Plugin Studio</h2>
-          <p class="text-sm text-slate-400">Generate custom voice-controlled automations or import community plugins.</p>
+          <p class="text-sm text-slate-400">Generate custom voice-controlled automations or import community plugins.
+          </p>
         </div>
 
         <!-- Section A: Template Wizard -->
@@ -220,32 +243,38 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">Plugin ID (lowercase)</label>
-              <input type="text" id="cr_id" placeholder="e.g. spotify" class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <input type="text" id="cr_id" placeholder="e.g. spotify"
+                class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">Display Name</label>
-              <input type="text" id="cr_name" placeholder="e.g. Spotify Controller" class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <input type="text" id="cr_name" placeholder="e.g. Spotify Controller"
+                class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">Emoji Icon</label>
-              <input type="text" id="cr_icon" value="🎵" class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <input type="text" id="cr_icon" value="🎵"
+                class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">Sample Voice Command</label>
-              <input type="text" id="cr_cmd" placeholder="e.g. play songs on spotify" class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <input type="text" id="cr_cmd" placeholder="e.g. play songs on spotify"
+                class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
             </div>
 
             <div class="col-span-full">
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">Description</label>
-              <input type="text" id="cr_desc" placeholder="Controls music playback and playlist search" class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <input type="text" id="cr_desc" placeholder="Controls music playback and playlist search"
+                class="w-full bg-nova-surface border border-nova-border rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-red-500">
             </div>
           </div>
 
           <div class="flex justify-end pt-2">
-            <button onclick="createPlugin()" class="flex items-center space-x-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-lg shadow-red-600/25">
+            <button onclick="createPlugin()"
+              class="flex items-center space-x-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-lg shadow-red-600/25">
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
               <span>Generate & Load Plugin</span>
             </button>
@@ -260,11 +289,13 @@
             </div>
             <div>
               <h3 class="font-semibold text-sm text-white">Import External Plugin File</h3>
-              <p class="text-xs text-slate-400">Install standalone .py or packaged .zip plugins from community repositories.</p>
+              <p class="text-xs text-slate-400">Install standalone .py or packaged .zip plugins from community
+                repositories.</p>
             </div>
           </div>
 
-          <div class="flex items-center justify-between bg-nova-surface border border-dashed border-nova-border hover:border-red-500/60 rounded-xl p-4 transition-colors">
+          <div
+            class="flex items-center justify-between bg-nova-surface border border-dashed border-nova-border hover:border-red-500/60 rounded-xl p-4 transition-colors">
             <div class="flex items-center space-x-3">
               <i data-lucide="file-code" class="w-6 h-6 text-red-400"></i>
               <div>
@@ -272,7 +303,8 @@
                 <p class="text-[11px] text-slate-500">Automatically validated and placed into User AppData.</p>
               </div>
             </div>
-            <button onclick="browseInstallPlugin()" class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-nova-surface2 hover:bg-nova-border text-white text-xs font-semibold border border-nova-border transition-all">
+            <button onclick="browseInstallPlugin()"
+              class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-nova-surface2 hover:bg-nova-border text-white text-xs font-semibold border border-nova-border transition-all">
               <i data-lucide="upload" class="w-3.5 h-3.5"></i>
               <span>Browse File...</span>
             </button>
@@ -285,9 +317,11 @@
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-xl font-bold text-white tracking-tight">System Health & Telemetry</h2>
-            <p class="text-sm text-slate-400">Real-time inspection of CUDA, Ollama, Whisper models, and hardware drivers.</p>
+            <p class="text-sm text-slate-400">Real-time inspection of CUDA, Ollama, Whisper models, and hardware
+              drivers.</p>
           </div>
-          <button onclick="loadDiagnostics()" class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-nova-card hover:bg-nova-surface border border-nova-border text-xs text-red-400 hover:text-red-300 font-semibold transition-all">
+          <button onclick="loadDiagnostics()"
+            class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-nova-card hover:bg-nova-surface border border-nova-border text-xs text-red-400 hover:text-red-300 font-semibold transition-all">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
             <span>Re-Scan System</span>
           </button>
@@ -298,16 +332,20 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2.5">
               <i data-lucide="mic" class="w-4 h-4 text-red-400"></i>
-              <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Live Microphone Level Test</span>
+              <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Live Microphone Level
+                Test</span>
             </div>
-            <button onclick="testMic()" id="mic-test-btn" class="px-3 py-1 rounded-lg bg-nova-surface text-red-400 border border-nova-border hover:border-red-500 text-xs font-medium transition-all">
+            <button onclick="testMic()" id="mic-test-btn"
+              class="px-3 py-1 rounded-lg bg-nova-surface text-red-400 border border-nova-border hover:border-red-500 text-xs font-medium transition-all">
               Test Audio Input
             </button>
           </div>
           <div class="w-full h-3 bg-nova-surface rounded-full overflow-hidden border border-nova-border">
-            <div id="mic-meter-bar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 w-0 transition-all duration-300"></div>
+            <div id="mic-meter-bar"
+              class="h-full bg-gradient-to-r from-red-500 to-rose-400 w-0 transition-all duration-300"></div>
           </div>
-          <p id="mic-meter-status" class="text-[11px] text-slate-500">Click 'Test Audio Input' to record a quick audio sample and verify sensitivity.</p>
+          <p id="mic-meter-status" class="text-[11px] text-slate-500">Click 'Test Audio Input' to record a quick audio
+            sample and verify sensitivity.</p>
         </div>
 
         <!-- Diagnostic Sections Container -->
@@ -319,11 +357,119 @@
         </div>
       </section>
 
+      <!-- ================= TAB: VOICE & WAKE WORD SETTINGS ================= -->
+      <section id="tab-voice" class="tab-content hidden space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Voice & Custom Wake Word</h2>
+          <p class="text-sm text-slate-400">Personalize your assistant's wake command, speech model, and identity.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Wake Word Configuration Card -->
+          <div class="p-6 rounded-2xl bg-nova-card border border-nova-border space-y-5">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Custom Wake Word / Phrase</h3>
+                <p class="text-[11px] text-slate-400">Type any custom name or choose a preset below</p>
+              </div>
+            </div>
+
+            <!-- Custom Wake Word Input -->
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Active Wake Word(s)</label>
+              <input type="text" id="wake_word" placeholder="e.g. Nova, Leo, Serena, Jarvis"
+                class="w-full px-4 py-2.5 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white font-mono text-sm tracking-wide transition-colors">
+              <p class="text-[11px] text-slate-500">You can also specify multiple comma-separated words (e.g. <span class="text-red-400 font-mono">Nova, Leo, Serena</span>).</p>
+            </div>
+
+            <!-- Preset Pills -->
+            <div class="space-y-1.5">
+              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Quick Presets</label>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="setPresetWake('Nova')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">✨ Nova</button>
+                <button type="button" onclick="setPresetWake('Leo')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">🦁 Leo</button>
+                <button type="button" onclick="setPresetWake('Serena')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">🌙 Serena</button>
+                <button type="button" onclick="setPresetWake('Sana')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">⚡ Sana</button>
+                <button type="button" onclick="setPresetWake('Jarvis')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">🤖 Jarvis</button>
+                <button type="button" onclick="setPresetWake('Friday')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">💎 Friday</button>
+              </div>
+            </div>
+
+            <!-- Sensitivity slider -->
+            <div class="space-y-2 pt-2 border-t border-nova-border/50">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-semibold text-slate-300">VAD Speech Sensitivity</span>
+                <span id="sens_val" class="font-mono text-red-400 font-bold">0.50</span>
+              </div>
+              <input type="range" id="wake_threshold" min="0.20" max="0.80" step="0.05" value="0.50"
+                oninput="document.getElementById('sens_val').innerText = parseFloat(this.value).toFixed(2)"
+                class="w-full accent-red-500 bg-nova-surface rounded-lg cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500">
+                <span>More Sensitive (0.20)</span>
+                <span>Balanced (0.50)</span>
+                <span>Strict (0.80)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personality & Model Configuration Card -->
+          <div class="p-6 rounded-2xl bg-nova-card border border-nova-border space-y-5">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                <i data-lucide="user" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Identity & Neural Engine</h3>
+                <p class="text-[11px] text-slate-400">Configure your assistant profile and transcription model</p>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Your Name (Owner)</label>
+              <input type="text" id="user_name" placeholder="User"
+                class="w-full px-4 py-2 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white text-sm">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Assistant Display Name</label>
+              <input type="text" id="assistant_name" placeholder="Sana"
+                class="w-full px-4 py-2 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white text-sm">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-slate-300">Whisper Neural Model</label>
+              <select id="whisper_model"
+                class="w-full px-4 py-2 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white text-sm">
+                <option value="tiny.en">tiny.en (Ultralight ~40MB — Lowest RAM)</option>
+                <option value="base.en">base.en (Balanced ~140MB — Standard Speed)</option>
+                <option value="small.en" selected>small.en (High Accuracy ~460MB — Recommended)</option>
+              </select>
+            </div>
+
+            <!-- Save Action Button -->
+            <div class="pt-4">
+              <button onclick="saveProfile()"
+                class="w-full flex items-center justify-center space-x-2 px-5 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-lg shadow-red-600/30 transition-all">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span>Save Voice & Wake Preferences</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
     </main>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 rounded-xl bg-nova-surface border border-nova-border shadow-2xl text-xs font-medium text-white flex items-center space-x-2.5 translate-y-20 opacity-0 transition-all duration-300 z-50">
+  <div id="toast"
+    class="fixed bottom-6 right-6 px-4 py-3 rounded-xl bg-nova-surface border border-nova-border shadow-2xl text-xs font-medium text-white flex items-center space-x-2.5 translate-y-20 opacity-0 transition-all duration-300 z-50">
     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400" id="toast-icon"></i>
     <span id="toast-msg">Preferences saved!</span>
   </div>
@@ -331,6 +477,11 @@
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
     let allPlugins = [];
+
+    function setPresetWake(name) {
+      document.getElementById('wake_word').value = name;
+      document.getElementById('assistant_name').value = name;
+    }
 
     // Tab switcher
     function switchTab(tabId) {
@@ -350,6 +501,7 @@
       }
 
       if (tabId === 'tab-plugins') loadPlugins();
+      if (tabId === 'tab-voice') loadProfile();
       if (tabId === 'tab-diagnostics') loadDiagnostics();
       lucide.createIcons();
     }
@@ -383,16 +535,16 @@
         const p = await window.pywebview.api.get_profile();
         if (!p) return;
 
-        document.getElementById('user_name').value = p.user_name || '';
-        document.getElementById('assistant_name').value = p.assistant_name || 'Sana';
-        document.getElementById('wake_word').value = p.wake_word || 'alexa';
-        document.getElementById('whisper_model').value = p.whisper_model || 'base.en';
-        document.getElementById('wake_threshold').value = p.wake_threshold || 0.50;
-        document.getElementById('sens_val').innerText = parseFloat(p.wake_threshold || 0.50).toFixed(2);
+        if (document.getElementById('user_name')) document.getElementById('user_name').value = p.user_name || '';
+        if (document.getElementById('assistant_name')) document.getElementById('assistant_name').value = p.assistant_name || 'Sana';
+        if (document.getElementById('wake_word')) document.getElementById('wake_word').value = p.wake_word || 'sana';
+        if (document.getElementById('whisper_model')) document.getElementById('whisper_model').value = p.whisper_model || 'small.en';
+        if (document.getElementById('wake_threshold')) document.getElementById('wake_threshold').value = p.wake_threshold || 0.50;
+        if (document.getElementById('sens_val')) document.getElementById('sens_val').innerText = parseFloat(p.wake_threshold || 0.50).toFixed(2);
 
-        document.getElementById('header-user-tag').innerText = p.user_name || 'User';
-        document.getElementById('quick-wake-word').innerText = (p.wake_word || 'alexa').toUpperCase();
-        document.getElementById('quick-whisper-model').innerText = p.whisper_model || 'base.en';
+        if (document.getElementById('header-user-tag')) document.getElementById('header-user-tag').innerText = p.user_name || 'User';
+        if (document.getElementById('quick-wake-word')) document.getElementById('quick-wake-word').innerText = (p.wake_word || 'SANA').toUpperCase();
+        if (document.getElementById('quick-whisper-model')) document.getElementById('quick-whisper-model').innerText = p.whisper_model || 'small.en';
       } catch (err) {
         console.error('Failed to load profile:', err);
       }
@@ -404,7 +556,7 @@
       const data = {
         user_name: document.getElementById('user_name').value.trim() || 'User',
         assistant_name: document.getElementById('assistant_name').value.trim() || 'Sana',
-        wake_word: document.getElementById('wake_word').value,
+        wake_word: document.getElementById('wake_word').value.trim() || 'sana',
         whisper_model: document.getElementById('whisper_model').value,
         wake_threshold: parseFloat(document.getElementById('wake_threshold').value)
       };
@@ -412,10 +564,10 @@
       try {
         const res = await window.pywebview.api.save_profile(data);
         if (res.success) {
-          showToast('Preferences saved successfully!');
-          document.getElementById('header-user-tag').innerText = data.user_name;
-          document.getElementById('quick-wake-word').innerText = data.wake_word.toUpperCase();
-          document.getElementById('quick-whisper-model').innerText = data.whisper_model;
+          showToast('Voice preferences saved successfully!');
+          if (document.getElementById('header-user-tag')) document.getElementById('header-user-tag').innerText = data.user_name;
+          if (document.getElementById('quick-wake-word')) document.getElementById('quick-wake-word').innerText = data.wake_word.toUpperCase();
+          if (document.getElementById('quick-whisper-model')) document.getElementById('quick-whisper-model').innerText = data.whisper_model;
         } else {
           showToast(res.message || 'Could not save profile.', true);
         }
@@ -832,4 +984,5 @@
     }, 500);
   </script>
 </body>
+
 </html>

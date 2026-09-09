@@ -1,5 +1,5 @@
 """
-    configuration settings for the Sana Assistant
+    Configuration settings for Privacy68 Assistant
 """
 
 import ctypes

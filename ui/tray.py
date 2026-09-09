@@ -3,11 +3,11 @@ import logging
 from PIL import Image, ImageDraw
 import pystray
 
-logger = logging.getLogger("SANA.SystemTray")
+logger = logging.getLogger("PRIVACY68.SystemTray")
 
 class SystemTray:
     """
-    Windows System Tray integration for SANA Assistant using pystray.
+    Windows System Tray integration for PRIVACY68 Assistant using pystray.
     Provides background controls, HUD toggle, and status indicators.
     """
     def __init__(self, ui_manager):
@@ -34,20 +34,20 @@ class SystemTray:
         image = self._create_icon_image("#EF4444")
         
         menu = pystray.Menu(
-            pystray.MenuItem("⚡ SANA Assistant (Online)", lambda: None, enabled=False),
+            pystray.MenuItem("⚡ PRIVACY68 Assistant (Online)", lambda: None, enabled=False),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("📱 Open Mobile Web Remote", self._on_open_mobile_remote),
             pystray.MenuItem("⚙️ Control Center & Settings", self._on_open_plugins),
             pystray.MenuItem("👁️ Toggle HUD Overlay", self._on_toggle_hud),
             pystray.MenuItem("🔇 Mute / Pause", self._on_toggle_mute),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("🚪 Exit SANA", self._on_exit)
+            pystray.MenuItem("🚪 Exit PRIVACY68", self._on_exit)
         )
         
         self.icon = pystray.Icon(
-            "SANA",
+            "PRIVACY68",
             image,
-            "SANA Voice Assistant",
+            "PRIVACY68 Voice Assistant",
             menu=menu
         )
         

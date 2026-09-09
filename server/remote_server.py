@@ -9,7 +9,7 @@ import io
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
-logger = logging.getLogger("SANA.RemoteServer")
+logger = logging.getLogger("PRIVACY68.RemoteServer")
 
 IS_FROZEN = getattr(sys, "frozen", False)
 BASE_DIR = sys._MEIPASS if IS_FROZEN else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -261,7 +261,7 @@ class RemoteServerManager:
             self.server_thread.start()
 
             url = get_remote_url(self.port)
-            logger.info(f"📱 SANA Mobile Web Remote Server is active at: {url}")
+            logger.info(f"📱 PRIVACY68 Mobile Web Remote Server is active at: {url}")
             logger.info(f"📱 Connect your phone on the same Wi-Fi network and open: {url}")
             return url
         except Exception as e:
@@ -272,7 +272,7 @@ class RemoteServerManager:
     def stop(self):
         """Stops the remote server."""
         if self.httpd and self.is_running:
-            logger.info("Stopping SANA Mobile Web Remote Server...")
+            logger.info("Stopping PRIVACY68 Mobile Web Remote Server...")
             self.is_running = False
             try:
                 self.httpd.shutdown()

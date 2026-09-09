@@ -17,7 +17,7 @@ except Exception:
 
 class FloatingHUD:
     """
-    A cinematic, full-screen transparent HUD overlay for SANA.
+    A cinematic, full-screen transparent HUD overlay for PRIVACY68.
     Features:
     - 100% click-through (WS_EX_TRANSPARENT) so games & apps are completely unobstructed.
     - Multi-tiered high-intensity glowing neon laser border around monitor edges on speech detection.
@@ -47,19 +47,19 @@ class FloatingHUD:
             },
             "listening": {
                 "accent": "#F43F5E", "bloom": "#E11D48", "halo": "#881337",
-                "badge": "● SANA // LISTENING"
+                "badge": "● PRIVACY68 // LISTENING"
             },
             "processing": {
                 "accent": "#FB7185", "bloom": "#BE123C", "halo": "#4C0519",
-                "badge": "⚡ SANA // PROCESSING"
+                "badge": "⚡ PRIVACY68 // PROCESSING"
             },
             "success": {
                 "accent": "#10B981", "bloom": "#059669", "halo": "#064E3B",
-                "badge": "✔ SANA // ACTION EXECUTED"
+                "badge": "✔ PRIVACY68 // ACTION EXECUTED"
             },
             "error": {
                 "accent": "#EF4444", "bloom": "#B91C1C", "halo": "#7F1D1D",
-                "badge": "✖ SANA // UNKNOWN COMMAND"
+                "badge": "✖ PRIVACY68 // UNKNOWN COMMAND"
             }
         }
         

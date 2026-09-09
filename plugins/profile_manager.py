@@ -3,21 +3,21 @@ import os
 import logging
 from typing import Dict, Any
 
-logger = logging.getLogger("SANA.ProfileManager")
+logger = logging.getLogger("PRIVACY68.ProfileManager")
 
 # Windows AppData path for user settings
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "PRIVACY68")
 os.makedirs(APPDATA_DIR, exist_ok=True)
 
 PROFILE_PATH = os.path.join(APPDATA_DIR, "user_profile.json")
 
 DEFAULT_PROFILE = {
     "user_name": "User",
-    "assistant_name": "Sana",
-    "wake_word": "sana",
+    "assistant_name": "Privacy68",
+    "wake_word": "privacy68",
     "wake_threshold": 0.50,
     "whisper_device": "cuda",
-    "whisper_model": "base.en",
+    "whisper_model": "small.en",
     "hud_enabled": True,
     "theme": "obsidian_red"
 }
@@ -25,7 +25,7 @@ DEFAULT_PROFILE = {
 class ProfileManager:
     """
     Manages user profile, preferences, and assistant settings.
-    Persists configuration cleanly to %APPDATA%/SANA/user_profile.json.
+    Persists configuration cleanly to %APPDATA%/PRIVACY68/user_profile.json.
     """
     def __init__(self):
         self.profile: Dict[str, Any] = DEFAULT_PROFILE.copy()
