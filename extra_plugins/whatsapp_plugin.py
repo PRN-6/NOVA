@@ -16,7 +16,7 @@ except ImportError:
     HAS_OLLAMA = False
 
 user32 = ctypes.windll.user32
-logger = logging.getLogger("NOVA.Plugin.WhatsApp")
+logger = logging.getLogger("SANA.Plugin.WhatsApp")
 
 # Virtual key codes
 VK_CONTROL = 0x11
@@ -40,7 +40,7 @@ def _press_paste():
 
 class WhatsAppPlugin(BasePlugin):
     """
-    Standalone WhatsApp Desktop Plugin for NOVA Assistant.
+    Standalone WhatsApp Desktop Plugin for SANA Assistant.
     Provides launching, closing, and AI-powered voice messaging.
     """
     id = "whatsapp"

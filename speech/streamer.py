@@ -25,7 +25,7 @@ import numpy as np
 from typing import Callable
 
 logging.basicConfig(level=logging.INFO , format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("NOVA.SpeechStreamer")
+logger = logging.getLogger("SANA.SpeechStreamer")
 
 class SpeechStreamer:
     def __init__(self) -> None:
@@ -35,7 +35,7 @@ class SpeechStreamer:
         self.vad = SileroVAD(threshold=getattr(config, "VAD_THRESHOLD", 0.50))
         self.is_active = False
 
-        logger.info("Using Whisper-based 'Hey Nova' / 'Nova' wake word detection.")
+        logger.info("Using Whisper-based 'Hey Sana' / 'Sana' wake word detection.")
 
         logger.info(f"Loading whisper model {config.WHISPER_MODEL_SIZE} on {config.WHISPER_DEVICE}")
 
@@ -119,19 +119,18 @@ class SpeechStreamer:
         silence_counter = 0
         has_spoken = False
 
-        # FIX 2: Looser regex — also catches common Whisper mishearings of "Nova"
-        # e.g. "Nora", "over", "mover", "nover" etc.
+        # Looser regex — catches Sana and common Whisper mishearings
         WAKE_PATTERN = re.compile(
-            r'\b(nova|nover|nova\'s|novah|nora)\b',
+            r'\b(sana|saana|sahna|sanna|sona|sonna|sena|zana)\b',
             re.IGNORECASE
         )
 
-        # FIX 1: Scan every 0.8 seconds (faster detection window)
+        # Scan every 0.8 seconds (faster detection window)
         IDLE_WINDOW_CHUNKS = int(self.sample_rate * 0.8 / config.BLOCK_SIZE)
-        # Overlap: keep last half of the buffer so "Nova" at window boundaries is never missed
+        # Overlap: keep last half of the buffer so "Sana" at window boundaries is never missed
         IDLE_OVERLAP_CHUNKS = IDLE_WINDOW_CHUNKS // 2
 
-        logger.info("NOVA is online. Say 'Nova' to activate.")
+        logger.info("SANA is online. Say 'Sana' to activate.")
         try:
             with self.stream:
                 while self.stream.active:
@@ -149,7 +148,7 @@ class SpeechStreamer:
                     except queue.Empty:
                         continue
 
-                    # 1. Idle state: Listen for "Nova" via Whisper
+                    # 1. Idle state: Listen for "Sana" via Whisper
                     if not self.is_active:
                         # Accumulate audio into idle_buffer
                         idle_buffer.append(chunk)
@@ -159,13 +158,12 @@ class SpeechStreamer:
                             # Transcribe the short idle buffer using Whisper
                             idle_audio = np.concatenate(idle_buffer).flatten()
 
-                            # FIX 1: Overlapping window — keep last half for next scan
-                            # so "Nova" spoken at a boundary is never split and missed
+                            # Overlapping window — keep last half for next scan
                             idle_buffer = idle_buffer[IDLE_OVERLAP_CHUNKS:]
 
                             segments, _ = self.model.transcribe(
                                 idle_audio,
-                                beam_size=2,          # FIX 3: beam_size=2 is more accurate than 1
+                                beam_size=2,
                                 without_timestamps=True,
                                 language='en',
                                 vad_filter=False,
@@ -175,9 +173,9 @@ class SpeechStreamer:
                             if idle_text:
                                 logger.debug(f"Idle scan heard: '{idle_text}'")
 
-                            # Check if user said "Nova" or "Hey Nova"
+                            # Check if user said "Sana" or "Hey Sana"
                             if WAKE_PATTERN.search(idle_text):
-                                logger.info(f"Wake word 'Nova' detected in: '{idle_text}'")
+                                logger.info(f"Wake word 'Sana' detected in: '{idle_text}'")
 
                                 if on_wake_word_callback:
                                     on_wake_word_callback()
@@ -191,7 +189,7 @@ class SpeechStreamer:
                                         pass
 
                                 # Check if the wake word was a one-shot command
-                                # e.g. "Hey Nova open notepad" — strip wake phrase and execute directly
+                                # e.g. "Hey Sana open notepad" — strip wake phrase and execute directly
                                 inline_command = WAKE_PATTERN.sub('', idle_text).strip(".!?, \t\n")
                                 if inline_command:
                                     logger.info(f"Inline command detected: '{inline_command}'")

@@ -4,7 +4,7 @@ import subprocess
 
 def build():
     print("=" * 50)
-    print("         NOVA Standalone EXE Build Pipeline       ")
+    print("         SANA Standalone EXE Build Pipeline       ")
     print("=" * 50)
 
     # Check for optional CUDA bundling flag
@@ -29,7 +29,7 @@ def build():
         "--noconfirm",
         "--onedir",
         "--windowed",
-        "--name=NOVA",
+        "--name=SANA",
         "--icon=assets\\icon.ico",
         "--add-data=plugins;plugins",
         "--add-data=skills;skills",
@@ -50,12 +50,12 @@ def build():
         "app.py"
     ] + nvidia_bin_datas
 
-    print("\n[+] Compiling NOVA with PyInstaller...")
+    print("\n[+] Compiling SANA with PyInstaller...")
     subprocess.run(cmd, check=True)
 
     print("\n" + "=" * 50)
-    print(" [OK] Build Successful! Output directory: dist/NOVA/")
-    print(" You can zip 'dist/NOVA' and distribute it to any Windows user.")
+    print(" [OK] Build Successful! Output directory: dist/SANA/")
+    print(" You can zip 'dist/SANA' and distribute it to any Windows user.")
     print("=" * 50)
 
 if __name__ == "__main__":

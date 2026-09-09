@@ -6,7 +6,7 @@ from typing import Callable, Dict, List
 from plugins.base_plugin import BasePlugin
 from plugins.win_keys import trigger_new_tab, trigger_close_tab, trigger_reopen_tab, kill_process
 
-logger = logging.getLogger("NOVA.Plugin.Chrome")
+logger = logging.getLogger("SANA.Plugin.Chrome")
 
 class ChromePlugin(BasePlugin):
     id = "chrome"
@@ -14,7 +14,7 @@ class ChromePlugin(BasePlugin):
     icon = "🌐"
     description = "Control Google Chrome: open, close, new tab, close tab, search, and incognito mode."
     version = "1.3.0"
-    author = "NOVA Team"
+    author = "SANA Team"
 
     @property
     def actions(self) -> Dict[str, Callable[[str], bool]]:

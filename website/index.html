@@ -4,211 +4,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOVA - Local AI Desktop Voice Assistant</title>
+    <title>SANA // Autonomous Local Voice Intelligence</title>
     <meta name="description"
-        content="NOVA is an ultra-fast, 100% private local voice assistant for Windows powered by faster-whisper, openWakeWord, and Ollama.">
+        content="SANA is a minimalist, ultra-fast, 100% private local voice assistant for Windows powered by faster-whisper, Silero VAD, and Ollama.">
 
-    <!-- Google Fonts -->
+    <!-- Retro & Monospace Typography (Silkscreen + JetBrains Mono + Space Mono) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Silkscreen:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body class="crt-enabled">
 
-    <!-- Background Ambient Glow -->
-    <div class="bg-glow bg-glow-1"></div>
-    <div class="bg-glow bg-glow-2"></div>
+    <!-- Interactive Background Dot Matrix Canvas -->
+    <canvas id="matrix-canvas"></canvas>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-orb"></span>
-                <span class="logo-text">NOVA</span>
-                <span class="badge">v1.0</span>
+    <!-- Scanline CRT Overlay -->
+    <div class="scanlines"></div>
+
+    <!-- Main Container -->
+    <div class="site-wrapper">
+
+        <!-- Top Minimalist Navigation Bar -->
+        <header class="top-nav">
+            <div class="nav-brand">
+                <span class="pixel-dot"></span>
+                <span class="brand-tag">SYS://SANA.AI</span>
             </div>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#commands">Commands</a>
-                <a href="#install">Installation</a>
-                <a href="#download" class="nav-btn">Get NOVA</a>
+
+            <nav class="nav-links">
+                <a href="#overview" class="nav-item active">[ 01 // home ]</a>
+                <span class="nav-sep">·</span>
+                <a href="#features" class="nav-item">[ 02 // features ]</a>
+                <span class="nav-sep">·</span>
+                <a href="#terminal" class="nav-item">[ 03 // terminal ]</a>
+                <span class="nav-sep">·</span>
+                <a href="#install" class="nav-item">[ 04 // setup ]</a>
+            </nav>
+
+            <div class="nav-controls">
+                <button id="sfx-toggle" class="icon-toggle" title="Toggle Sound FX">
+                    <span class="ctrl-label">SFX:</span>
+                    <span id="sfx-status" class="ctrl-val">ON</span>
+                </button>
+                <button id="crt-toggle" class="icon-toggle" title="Toggle CRT Filter">
+                    <span class="ctrl-label">CRT:</span>
+                    <span id="crt-status" class="ctrl-val">ON</span>
+                </button>
             </div>
-        </div>
-    </nav>
+        </header>
 
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="hero-container">
-            <div class="hero-badge">⚡ Ultra-Low Latency & 100% Offline</div>
-            <h1 class="hero-title">Your Private AI Voice Assistant for Windows</h1>
-            <p class="hero-subtitle">
-                Control your PC at the speed of thought. Powered by GPU-accelerated local Whisper, wake word spotting,
-                and dual-lane semantic routing. Zero cloud data leaks.
-            </p>
+        <!-- Hero Section: Iconic Pixel Brutalist Centerpiece -->
+        <main class="hero-section" id="overview">
+            <div class="hero-center">
+                
+                <!-- Status Badge -->
+                <div class="hero-pill">
+                    <span class="pill-pulse"></span>
+                    <span class="pill-text">100% OFFLINE · ZERO CLOUD DATA LEAKS · LOCAL GPU CORE</span>
+                </div>
 
-            <div class="hero-cta" id="download">
-                <a href="downloads/NOVA-Setup-v1.0.0.exe" download class="btn btn-primary" id="download-btn">
-                    <span class="btn-icon">⬇</span>
-                    <div class="btn-text">
-                        <span class="btn-main">Download for Windows</span>
-                        <span class="btn-sub">v1.0.0 | Windows 10/11 64-bit (x64)</span>
+                <!-- Massive Pixel Brutalist Wordmark -->
+                <h1 class="pixel-title" data-text="sana">sana</h1>
+
+                <!-- Subtitle / Developer Tag -->
+                <p class="hero-sub">
+                    <span class="hash-tag">#</span> Autonomous Local Voice Assistant & OS Automation
+                </p>
+                <p class="hero-author">
+                    [ <span class="dim">crafted with local neural models by</span> <span class="author-name">prinson</span> ]
+                </p>
+
+                <!-- Hero Interactive Audio Waveform Visualizer -->
+                <div class="audio-hud-box">
+                    <div class="hud-header">
+                        <span class="hud-status">● LIVE STREAM DETECTOR // 16kHz MONO</span>
+                        <span class="hud-mode">VAD: SILERO NEURAL</span>
                     </div>
-                </a>
-                <a href="#install" class="btn btn-secondary">Setup Guide</a>
+                    <canvas id="waveform-canvas" width="640" height="54"></canvas>
+                    <div class="hud-footer">
+                        <span>SAY: <b class="glow-word">"SANA"</b> + YOUR COMMAND</span>
+                        <span id="hud-latency">LATENCY: ~48ms</span>
+                    </div>
+                </div>
+
+                <!-- Call To Action -->
+                <div class="cta-actions">
+                    <a href="downloads/SANA-Setup-v1.0.0.exe" download class="pixel-btn primary-btn" id="main-download-btn">
+                        <span class="btn-bracket">[</span>
+                        <span class="btn-core">⬇ DOWNLOAD SANA.EXE v1.0</span>
+                        <span class="btn-bracket">]</span>
+                    </a>
+                    <a href="#terminal" class="pixel-btn secondary-btn">
+                        <span class="btn-bracket">[</span>
+                        <span class="btn-core">⚡ TEST LIVE COMMANDS</span>
+                        <span class="btn-bracket">]</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <!-- Interactive Terminal Simulator Section -->
+        <section class="content-section" id="terminal">
+            <div class="section-title-wrap">
+                <span class="section-index">[ 03 // LIVE TERMINAL SIMULATOR ]</span>
+                <h2 class="section-heading">Test Dual-Lane Intelligence</h2>
+                <p class="section-desc">Click any voice prompt to watch SANA route between Fast-Lane (<2ms) and Ollama AI in real time.</p>
             </div>
 
-            <!-- Floating Hero Graphic -->
-            <div class="hero-visual">
-                <div class="voice-wave-card">
-                    <div class="card-header">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
-                        <span class="card-title">NOVA Background Service</span>
-                    </div>
-                    <div class="visual-content">
-                        <div class="ai-orb"></div>
-                        <div class="transcript-box">
-                            <span class="speaker">User:</span> <span id="typing-text">"Alexa, open Chrome"</span>
+            <div class="terminal-container">
+                <!-- Preset Prompt Triggers -->
+                <div class="prompt-chips">
+                    <span class="chips-label">&gt; SELECT VOICE INPUT:</span>
+                    <button class="cmd-chip active" data-cmd="Sana, open Google Chrome" data-lane="FAST_LANE" data-action="Launching Chrome Browser (Native API)" data-conf="0.98">"Sana, open Chrome"</button>
+                    <button class="cmd-chip" data-cmd="Sana, launch WhatsApp" data-lane="FAST_LANE" data-action="Executing WhatsApp Desktop Protocol" data-conf="0.99">"Sana, launch WhatsApp"</button>
+                    <button class="cmd-chip" data-cmd="Sana, type meeting notes on notepad" data-lane="FAST_LANE" data-action="Simulating Direct Keyboard Input" data-conf="0.94">"Sana, type notes"</button>
+                    <button class="cmd-chip" data-cmd="Sana, search what is quantum computing on google" data-lane="OLLAMA_AI" data-action="Ollama Qwen 2.5 → Resolved to WebSearchSkill" data-conf="0.96">"Sana, search quantum physics"</button>
+                    <button class="cmd-chip" data-cmd="Sana, mute the system volume right now" data-lane="FAST_LANE" data-action="Win32 Audio API → Volume Set 0%" data-conf="0.97">"Sana, mute volume"</button>
+                </div>
+
+                <!-- Retro CRT Terminal Window -->
+                <div class="retro-window">
+                    <div class="window-bar">
+                        <div class="window-dots">
+                            <span class="w-dot red"></span>
+                            <span class="w-dot yellow"></span>
+                            <span class="w-dot green"></span>
                         </div>
-                        <div class="status-tag">🟢 Tray Status: Active (52ms response)</div>
+                        <div class="window-title">SANA_CORE_DEBUG_CONSOLE.LOG</div>
+                        <div class="window-badges">
+                            <span class="badge-tag">GPU: ACTIVE</span>
+                        </div>
+                    </div>
+                    <div class="terminal-screen" id="terminal-screen">
+                        <p class="term-line dim">[00:00:01] SANA Neural Engine initialized on device: CUDA (float16)</p>
+                        <p class="term-line dim">[00:00:01] Silero VAD speech filter engaged (threshold: 0.50)</p>
+                        <p class="term-line dim">[00:00:02] Listening on microphone stream (16kHz / 1280 chunk buffer)...</p>
+                        <p class="term-line accent" id="term-wake">&gt; [WAKE DETECTED] Keyword 'Sana' spotted via Whisper idle scan</p>
+                        <p class="term-line user" id="term-input">&gt; [USER SPOKE] "Sana, open Google Chrome"</p>
+                        <p class="term-line router" id="term-lane">&gt; [DUAL-LANE ROUTER] Matched Fast Lane (Cosine Conf: 0.98 &gt;= 0.78)</p>
+                        <p class="term-line success" id="term-action">&gt; [ACTION SUCCESS] ⚡ Executed 'chrome.open' in 1.4ms</p>
+                        <p class="term-cursor">&gt; _</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </header>
+        </section>
 
-    <!-- Key Features Grid -->
-    <section class="section" id="features">
-        <div class="section-header">
-            <h2>Engineered for Privacy & Speed</h2>
-            <p>Runs directly on your hardware without sending a single byte of audio to the cloud.</p>
-        </div>
-
-        <div class="grid grid-3">
-            <div class="card">
-                <div class="card-icon">⚡</div>
-                <h3>Sub-100ms Latency</h3>
-                <p>Equipped with CUDA GPU acceleration and fast TF-IDF vector routing for instantaneous command
-                    execution.</p>
+        <!-- Features / Brutalist Specs Grid -->
+        <section class="content-section" id="features">
+            <div class="section-title-wrap">
+                <span class="section-index">[ 02 // ARCHITECTURE & SPECIFICATIONS ]</span>
+                <h2 class="section-heading">Engineered for Extreme Speed & Privacy</h2>
+                <p class="section-desc">Hardware-accelerated neural networks running directly on your Windows desktop.</p>
             </div>
 
-            <div class="card">
-                <div class="card-icon">🔒</div>
-                <h3>100% Local & Private</h3>
-                <p>Speech recognition, wake-word detection, and LLM reasoning run completely on your machine. No API
-                    keys or subscriptions.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">🎧</div>
-                <h3>System Tray Background App</h3>
-                <p>Runs silently in your Windows notification tray with live status indicators, pause/resume, and zero
-                    CPU waste.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">🧠</div>
-                <h3>Hybrid Dual-Lane AI</h3>
-                <p>Fast-lane semantic vectorizer handles common apps instantly, while Ollama (Qwen 2.5) solves complex
-                    natural requests.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">🔌</div>
-                <h3>Modular Skills Engine</h3>
-                <p>Easily create new custom Python skills to launch apps, control media, automate workflows, or manage
-                    files.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">💻</div>
-                <h3>Auto CPU Fallback</h3>
-                <p>Optimized for NVIDIA RTX/GTX GPUs, with automatic fallback to int8 CPU quantized execution for any
-                    PC.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Interactive Voice Commands Section -->
-    <section class="section" id="commands">
-        <div class="section-header">
-            <h2>Supported Voice Commands</h2>
-            <p>Click any voice intent below to preview how NOVA processes it.</p>
-        </div>
-
-        <div class="command-showcase">
-            <div class="command-list">
-                <button class="cmd-pill active" data-cmd="Alexa, open Chrome"
-                    data-action="Launching Google Chrome Browser" data-lane="Fast-Lane Router (< 2ms)">🌐 "Alexa, open
-                    Chrome"</button>
-                <button class="cmd-pill" data-cmd="Alexa, launch WhatsApp" data-action="Opening WhatsApp Desktop App"
-                    data-lane="Fast-Lane Router (< 2ms)">💬 "Alexa, launch WhatsApp"</button>
-                <button class="cmd-pill" data-cmd="Alexa, bring up my code editor"
-                    data-action="Reasoning via Ollama -> Launching VS Code" data-lane="Ollama AI Lane (qwen2.5)">💻
-                    "Alexa, bring up my code editor"</button>
-                <button class="cmd-pill" data-cmd="Alexa, I want to search python docs"
-                    data-action="Reasoning via Ollama -> Opening Browser Search" data-lane="Ollama AI Lane (qwen2.5)">🔍
-                    "Alexa, search python docs"</button>
-            </div>
-
-            <div class="terminal-preview">
-                <div class="terminal-bar">
-                    <span>nova-debug-console.log</span>
+            <div class="specs-grid">
+                <!-- Spec Card 1 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 01 ]</span>
+                        <span class="spec-icon"><i data-lucide="zap"></i></span>
+                    </div>
+                    <h3 class="spec-title">Sub-100ms Inference</h3>
+                    <p class="spec-body">Powered by <code>faster-whisper</code> (CTranslate2) with CUDA float16 GPU acceleration and automatic int8 CPU fallback.</p>
+                    <div class="spec-tag">BENCHMARK: 48ms</div>
                 </div>
-                <div class="terminal-body">
-                    <p><span class="log-info">[INFO]</span> Wake word 'alexa' detected (Confidence: 0.99)</p>
-                    <p><span class="log-accent">[INPUT]</span> <span id="preview-cmd">"Alexa, open Chrome"</span></p>
-                    <p><span class="log-lane">[ROUTER]</span> <span id="preview-lane">Fast-Lane Router (< 2ms)</span>
-                    </p>
-                    <p><span class="log-success">[SUCCESS]</span> <span id="preview-action">Launching Google Chrome
-                            Browser</span></p>
+
+                <!-- Spec Card 2 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 02 ]</span>
+                        <span class="spec-icon"><i data-lucide="shield-check"></i></span>
+                    </div>
+                    <h3 class="spec-title">100% Local & Private</h3>
+                    <p class="spec-body">Zero cloud servers, zero telemetry. Audio buffers never touch the network, keeping your desktop privacy inviolable.</p>
+                    <div class="spec-tag">CLOUD DETACHED</div>
+                </div>
+
+                <!-- Spec Card 3 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 03 ]</span>
+                        <span class="spec-icon"><i data-lucide="git-branch"></i></span>
+                    </div>
+                    <h3 class="spec-title">Dual-Lane Decision Core</h3>
+                    <p class="spec-body">TF-IDF vector matching resolves 80% of routine actions in &lt;2ms. Complex reasoning dynamically falls through to Ollama AI.</p>
+                    <div class="spec-tag">HYBRID ENGINE</div>
+                </div>
+
+                <!-- Spec Card 4 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 04 ]</span>
+                        <span class="spec-icon"><i data-lucide="activity"></i></span>
+                    </div>
+                    <h3 class="spec-title">Silero Neural VAD</h3>
+                    <p class="spec-body">32ms frame-level Voice Activity Detection ignores keyboard clicks, breathing, and background TV chatter seamlessly.</p>
+                    <div class="spec-tag">NOISE RESISTANT</div>
+                </div>
+
+                <!-- Spec Card 5 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 05 ]</span>
+                        <span class="spec-icon"><i data-lucide="layers"></i></span>
+                    </div>
+                    <h3 class="spec-title">Click-Through Neon HUD</h3>
+                    <p class="spec-body">Full-screen transparent overlay with Windows WS_EX_TRANSPARENT integration so games & work are never blocked.</p>
+                    <div class="spec-tag">NON-INTRUSIVE UI</div>
+                </div>
+
+                <!-- Spec Card 6 -->
+                <div class="spec-card">
+                    <div class="spec-header">
+                        <span class="spec-num">[ 06 ]</span>
+                        <span class="spec-icon"><i data-lucide="puzzle"></i></span>
+                    </div>
+                    <h3 class="spec-title">Hot-Reload Plugin Hub</h3>
+                    <p class="spec-body">Drop Python scripts into <code>%APPDATA%/SANA/plugins/</code> and SANA instantly re-indexes new voice triggers with zero restarts.</p>
+                    <div class="spec-tag">EXTENSIBLE ARCH</div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- 3-Step Quick Install -->
-    <section class="section install-section" id="install">
-        <div class="section-header">
-            <h2>Get Started in 3 Steps</h2>
-            <p>No complex installations or environment setup required.</p>
-        </div>
-
-        <div class="grid grid-3 steps-grid">
-            <div class="step-card">
-                <div class="step-num">1</div>
-                <h3>Download & Extract</h3>
-                <p>Download the latest zip package and extract it to any folder on your PC.</p>
+        <!-- Quick 3-Step Setup Section -->
+        <section class="content-section" id="install">
+            <div class="section-title-wrap">
+                <span class="section-index">[ 04 // QUICK START GUIDE ]</span>
+                <h2 class="section-heading">Launch in Three Commands</h2>
+                <p class="section-desc">Run directly from source or download the pre-compiled Windows bundle.</p>
             </div>
 
-            <div class="step-card">
-                <div class="step-num">2</div>
-                <h3>Launch NOVA.exe</h3>
-                <p>Double-click <code>NOVA.exe</code>. The glowing green icon will appear in your taskbar tray.</p>
+            <div class="steps-container">
+                <div class="step-row">
+                    <div class="step-badge">STEP 01</div>
+                    <div class="step-detail">
+                        <h4>Clone Repository & Setup Environment</h4>
+                        <div class="code-block">
+                            <code>git clone https://github.com/yourusername/SANA.git &amp;&amp; cd SANA</code>
+                            <button class="copy-btn" onclick="copyCode(this, 'git clone https://github.com/yourusername/SANA.git && cd SANA')">COPY</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-row">
+                    <div class="step-badge">STEP 02</div>
+                    <div class="step-detail">
+                        <h4>Install Dependencies</h4>
+                        <div class="code-block">
+                            <code>pip install -r requirements.txt</code>
+                            <button class="copy-btn" onclick="copyCode(this, 'pip install -r requirements.txt')">COPY</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-row">
+                    <div class="step-badge">STEP 03</div>
+                    <div class="step-detail">
+                        <h4>Launch Assistant & Say "Sana"</h4>
+                        <div class="code-block">
+                            <code>python app.py</code>
+                            <button class="copy-btn" onclick="copyCode(this, 'python app.py')">COPY</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bottom Status Bar & Footer -->
+        <footer class="bottom-bar">
+            <!-- Left: Social & Author Links -->
+            <div class="bar-left">
+                <a href="https://github.com" target="_blank" rel="noreferrer" class="social-icon" title="GitHub">
+                    <i data-lucide="github"></i>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noreferrer" class="social-icon" title="LinkedIn">
+                    <i data-lucide="linkedin"></i>
+                </a>
+                <a href="mailto:contact@prinson.dev" class="social-icon" title="Email">
+                    <i data-lucide="mail"></i>
+                </a>
+                <span class="bar-tag">© 2026 SANA · PRINSON</span>
             </div>
 
-            <div class="step-card">
-                <div class="step-num">3</div>
-                <h3>Speak Naturally</h3>
-                <p>Say <b>"Alexa"</b>, listen for the beep, and speak your command.</p>
+            <!-- Right: Live Retro Telemetry Counters -->
+            <div class="bar-right">
+                <span class="telemetry-item">
+                    <span class="dot-indicator"></span>
+                    <span class="t-label">SYS:</span> ONLINE
+                </span>
+                <span class="telemetry-sep">·</span>
+                <span class="telemetry-item">
+                    <span class="t-label">ENGINE:</span> CUDA 12
+                </span>
+                <span class="telemetry-sep">·</span>
+                <span class="telemetry-item">
+                    <span class="t-label">LATENCY:</span> &lt;50ms
+                </span>
             </div>
-        </div>
-    </section>
+        </footer>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <p>© 2026 NOVA Assistant. Built with Python, faster-whisper, and openWakeWord.</p>
-            <p class="footer-meta">100% Open Source & Privacy Preserved.</p>
-        </div>
-    </footer>
+    </div>
 
+    <!-- Scripts -->
     <script src="script.js"></script>
 </body>
 

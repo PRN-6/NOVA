@@ -14,7 +14,7 @@ from plugins.win_keys import (
     trigger_minimize_window
 )
 
-logger = logging.getLogger("NOVA.Plugin.System")
+logger = logging.getLogger("SANA.Plugin.System")
 
 class SystemPlugin(BasePlugin):
     id = "system"
@@ -22,7 +22,7 @@ class SystemPlugin(BasePlugin):
     icon = "⚙️"
     description = "Control Windows OS: volume, screen lock, screenshot, enter, close, maximize, and minimize windows."
     version = "1.3.0"
-    author = "NOVA Team"
+    author = "SANA Team"
 
     @property
     def actions(self) -> Dict[str, Callable[[str], bool]]:
@@ -224,7 +224,7 @@ class SystemPlugin(BasePlugin):
         import re
         import time
         content = re.sub(
-            r'^(?:nova,?\s*)?(?:please\s*)?(?:can\s+you\s*)?(?:type\s+that|type\s+out|type\s+in|type|write\s+that|write\s+out|write\s+down|write)\s+',
+            r'^(?:sana,?\s*|sena,?\s*|nova,?\s*)?(?:please\s*)?(?:can\s+you\s*)?(?:type\s+that|type\s+out|type\s+in|type|write\s+that|write\s+out|write\s+down|write)\s+',
             '', text, flags=re.IGNORECASE
         ).strip()
 

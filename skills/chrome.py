@@ -6,7 +6,7 @@ import urllib.parse
 import pyautogui
 from skills.base_skill import BaseSkill
 
-logger = logging.getLogger("NOVA.ChromeSkill")
+logger = logging.getLogger("SANA.ChromeSkill")
 
 # Only sites whose real URL differs from www.[name].com
 # Everything else is handled automatically by the generic site opener

@@ -3,11 +3,11 @@ import logging
 from PIL import Image, ImageDraw
 import pystray
 
-logger = logging.getLogger("NOVA.SystemTray")
+logger = logging.getLogger("SANA.SystemTray")
 
 class SystemTray:
     """
-    Windows System Tray integration for NOVA Assistant using pystray.
+    Windows System Tray integration for SANA Assistant using pystray.
     Provides background controls, HUD toggle, and status indicators.
     """
     def __init__(self, ui_manager):
@@ -15,7 +15,7 @@ class SystemTray:
         self.icon = None
         self.is_running = False
 
-    def _create_icon_image(self, color="#06B6D4"):
+    def _create_icon_image(self, color="#EF4444"):
         """Generates a dynamic 64x64 icon with a glowing rounded circle."""
         width = 64
         height = 64
@@ -23,7 +23,7 @@ class SystemTray:
         draw = ImageDraw.Draw(image)
         
         # Outer ring
-        draw.ellipse((4, 4, 60, 60), fill="#111827", outline=color, width=4)
+        draw.ellipse((4, 4, 60, 60), fill="#111115", outline=color, width=4)
         # Inner core
         draw.ellipse((20, 20, 44, 44), fill=color)
         
@@ -31,23 +31,23 @@ class SystemTray:
 
     def start(self):
         """Starts the tray icon in a dedicated background thread."""
-        image = self._create_icon_image("#06B6D4")
+        image = self._create_icon_image("#EF4444")
         
         menu = pystray.Menu(
-            pystray.MenuItem("⚡ NOVA Assistant (Online)", lambda: None, enabled=False),
+            pystray.MenuItem("⚡ SANA Assistant (Online)", lambda: None, enabled=False),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("📱 Open Mobile Web Remote", self._on_open_mobile_remote),
             pystray.MenuItem("⚙️ Control Center & Settings", self._on_open_plugins),
             pystray.MenuItem("👁️ Toggle HUD Overlay", self._on_toggle_hud),
             pystray.MenuItem("🔇 Mute / Pause", self._on_toggle_mute),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("🚪 Exit NOVA", self._on_exit)
+            pystray.MenuItem("🚪 Exit SANA", self._on_exit)
         )
         
         self.icon = pystray.Icon(
-            "NOVA",
+            "SANA",
             image,
-            "NOVA Voice Assistant",
+            "SANA Voice Assistant",
             menu=menu
         )
         

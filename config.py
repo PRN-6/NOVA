@@ -1,5 +1,5 @@
 """
-    configuration settings for the NOVA Assistant
+    configuration settings for the Sana Assistant
 """
 
 import ctypes
@@ -38,10 +38,10 @@ WHISPER_DEVICE      = "cuda"  if _HAS_CUDA else "cpu"   # auto-detected
 WHISPER_COMPUTE_TYPE = "float16" if _HAS_CUDA else "int8"  # float16=GPU, int8=CPU fallback
 WHISPER_BEAM_SIZE = 5
 WHISPER_HOTWORDS = "Brave, Chrome, WhatsApp, YouTube, tab, close, open, search, volume, enter, screenshot, lock"
-INITIAL_PROMPT = "Commands for Nova assistant to open apps like Brave, Chrome, WhatsApp, and search the web, Google, or YouTube."
+INITIAL_PROMPT = "Commands for Sana assistant to open apps like Brave, Chrome, WhatsApp, and search the web, Google, or YouTube."
 
 # Wake word configuration
-WAKE_WORD_MODEL = "nova"
+WAKE_WORD_MODEL = "sana"
 WAKE_WORD_THRESHOLD = 0.50
 
 # Audio feedback sounds (True = beep on wake, False = silent)

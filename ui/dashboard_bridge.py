@@ -12,7 +12,7 @@ import numpy as np
 from plugins.manager import plugin_manager
 from plugins.profile_manager import profile_manager
 
-logger = logging.getLogger("NOVA.DashboardBridge")
+logger = logging.getLogger("SANA.DashboardBridge")
 
 class DashboardAPI:
     """
@@ -33,8 +33,8 @@ class DashboardAPI:
         try:
             return {
                 "user_name": profile_manager.get("user_name", "User"),
-                "assistant_name": profile_manager.get("assistant_name", "Nova"),
-                "wake_word": profile_manager.get("wake_word", "alexa"),
+                "assistant_name": profile_manager.get("assistant_name", "Sana"),
+                "wake_word": profile_manager.get("wake_word", "sana"),
                 "wake_threshold": float(profile_manager.get("wake_threshold", 0.50)),
                 "whisper_model": profile_manager.get("whisper_model", "base.en"),
                 "whisper_device": profile_manager.get("whisper_device", "cuda"),
@@ -136,8 +136,8 @@ class DashboardAPI:
             root.withdraw()
             root.attributes("-topmost", True)
             file_path = filedialog.askopenfilename(
-                title="Select NOVA Plugin File",
-                filetypes=[("NOVA Plugin Files", "*.py *.zip"), ("Python Files", "*.py"), ("All Files", "*.*")]
+                title="Select SANA Plugin File",
+                filetypes=[("SANA Plugin Files", "*.py *.zip"), ("Python Files", "*.py"), ("All Files", "*.*")]
             )
             root.destroy()
             return file_path or ""

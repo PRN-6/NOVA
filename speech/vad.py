@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from faster_whisper.vad import get_vad_model
 
-logger = logging.getLogger("NOVA.SileroVAD")
+logger = logging.getLogger("SANA.SileroVAD")
 
 class SileroVAD:
     """

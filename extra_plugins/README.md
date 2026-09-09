@@ -1,6 +1,6 @@
-# NOVA Extra & Community Plugins
+# SANA Extra & Community Plugins
 
-This directory contains standalone, optional plugins that are separated from NOVA's default built-in core.
+This directory contains standalone, optional plugins that are separated from SANA's default built-in core.
 
 ---
 
@@ -18,19 +18,19 @@ This directory contains standalone, optional plugins that are separated from NOV
 
 ---
 
-## 🚀 How to Install Them into NOVA
+## 🚀 How to Install Them into SANA
 
 You can install any of these plugins in **two ways**:
 
-### Method 1: Via the NOVA Control Center GUI (Recommended)
-1. Open the **NOVA Control Center** (right-click the tray icon $\to$ **Plugins & Skills**).
+### Method 1: Via the SANA Control Center GUI (Recommended)
+1. Open the **SANA Control Center** (right-click the tray icon $\to$ **Control Center & Settings**).
 2. Go to the **🛠️ Create / Install Plugin** tab.
 3. Click **"📁 Browse & Install Plugin File..."** and select `extra_plugins/whatsapp_plugin.py` or `extra_plugins/brave_plugin.py`.
-4. It will automatically install into your `%APPDATA%\NOVA\plugins\` folder and hot-reload immediately!
+4. It will automatically install into your `%APPDATA%\SANA\plugins\` folder and hot-reload immediately!
 
 ### Method 2: Manual Copy
 Copy the `.py` file directly to your User AppData folder:
 ```powershell
-Copy-Item "extra_plugins\whatsapp_plugin.py" -Destination "$env:APPDATA\NOVA\plugins\"
+Copy-Item "extra_plugins\whatsapp_plugin.py" -Destination "$env:APPDATA\SANA\plugins\"
 ```
-Restart or open the Control Center, and NOVA will automatically discover it.
+Restart or open the Control Center, and SANA will automatically discover it.

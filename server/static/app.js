@@ -1,5 +1,5 @@
 /**
- * NOVA Mobile Web Remote Client Controller
+ * SANA Mobile Web Remote Client Controller
  */
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         connectionStatus.querySelector('.status-text').textContent = 'Offline';
     }
 
-    // 3. Dispatch Command to NOVA PC Core
+    // 3. Dispatch Command to SANA PC Core
     async function dispatchCommand(commandText) {
         const text = commandText.trim();
         if (!text) return;

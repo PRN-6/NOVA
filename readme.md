@@ -1,6 +1,6 @@
-# 🌌 NOVA Voice Assistant
+# 🌌 SANA Voice Assistant
 
-NOVA is a high-performance, locally-hosted AI voice assistant built in Python. Designed for speed and privacy, it uses local neural networks to listen for a wake word, transcribe your speech, and execute system commands or query local AI models (via Ollama)—all without sending your voice data to the cloud.
+SANA is a high-performance, locally-hosted AI voice assistant built in Python. Designed for speed and privacy, it uses local neural networks to listen for a wake word, transcribe your speech, and execute system commands or query local AI models (via Ollama)—all without sending your voice data to the cloud.
 
 ---
 
@@ -16,7 +16,7 @@ NOVA is a high-performance, locally-hosted AI voice assistant built in Python. D
 
 ## 🛠️ How It Works
 
-1. **The Wake Word**: The audio stream continuously buffers short chunks of audio. It uses a lightweight Whisper scan to detect the wake word (`"Nova"` or `"Hey Nova"`).
+1. **The Wake Word**: The audio stream continuously buffers short chunks of audio. It uses a lightweight Whisper scan to detect the wake word (`"Sana"` or `"Hey Sana"`).
 2. **Active Listening**: Once awakened, the Neural VAD tracks your voice. It records until you stop speaking.
 3. **Transcription**: The recorded audio is normalized and sent to the Whisper AI model to be converted into text.
 4. **Execution**: The text is passed to the `ActionExecutor`, which matches it against available plugins or routes it to the Ollama AI for complex reasoning.
@@ -30,7 +30,7 @@ NOVA is a high-performance, locally-hosted AI voice assistant built in Python. D
 - An NVIDIA GPU (Highly recommended for CUDA acceleration, though CPU fallback is supported)
 - [Ollama](https://ollama.ai/) installed and running locally
   - Required model: **`qwen2.5:0.5b`** (used for AI intent reasoning and fallback skills)
-  - Pull the model before running NOVA:
+  - Pull the model before running SANA:
     ```powershell
     ollama pull qwen2.5:0.5b
     ```
@@ -38,8 +38,8 @@ NOVA is a high-performance, locally-hosted AI voice assistant built in Python. D
 ### 1. Clone & Environment Setup
 Clone the repository and create a Python virtual environment:
 ```powershell
-git clone https://github.com/yourusername/NOVA.git
-cd NOVA
+git clone https://github.com/yourusername/SANA.git
+cd SANA
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
@@ -52,12 +52,12 @@ pip install -r requirements.txt
 
 *(Note: If you have an NVIDIA GPU, the requirements file automatically installs the necessary `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` libraries for GPU acceleration).*
 
-### 3. Run NOVA
+### 3. Run SANA
 To launch the assistant, simply run:
 ```powershell
 python app.py
 ```
-You will see the NOVA icon appear in your Windows System Tray. Say *"Nova"* to wake it up!
+You will see the SANA icon appear in your Windows System Tray. Say *"Sana"* to wake it up!
 
 ---
 

@@ -1,6 +1,6 @@
-# 📋 NOVA Feature Roadmap & TO-DO List
+# 📋 SANA Feature Roadmap & TO-DO List
 
-This document outlines the planned improvements, bug fixes, new plugins, and architectural upgrades for the **NOVA Assistant** project.
+This document outlines the planned improvements, bug fixes, new plugins, and architectural upgrades for the **SANA Assistant** project.
 
 ---
 
@@ -10,18 +10,18 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
   - Current `start whatsapp:` fails if protocol handler isn't registered.
   - Add fallback sequence: Protocol URI (`whatsapp:`) $\rightarrow$ App Execution Alias (`WhatsApp.exe`) $\rightarrow$ Windows Store package lookup $\rightarrow$ WhatsApp Web in browser.
 - [ ] **Text-To-Speech (TTS) Voice Responses**
-  - Add offline, low-latency TTS (e.g., `pyttsx3`, `edge-tts`, or `piper-tts`) so NOVA can speak back to confirm actions (e.g., *"Opening Chrome"*, *"Volume set to 50%"*).
+  - Add offline, low-latency TTS (e.g., `pyttsx3`, `edge-tts`, or `piper-tts`) so SANA can speak back to confirm actions (e.g., *"Opening Chrome"*, *"Volume set to 50%"*).
 - [x] **Silero VAD Neural Network Integration**
   - Replace simple energy/RMS thresholding with **Silero VAD (ONNX)** for enterprise-grade speech segmentation.
   - Eliminates false triggers from breathing, keyboard clicks, and background fans while cutting latency when you stop speaking.
 - [ ] **Wake-Word Sensitivity & Noise Calibration**
   - Add an automatic ambient noise calibration step on startup to dynamically adjust `SILENCE_THRESHOLD`.
 - [ ] **Custom User Wake-Word & Activation Phrases**
-  - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Nova"*, *"Friday"*) via UI settings or config.
+  - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Sana"*, *"Friday"*) via UI settings or config.
   - Support custom regex patterns, phonetic alias expansion, and configurable sensitivity for user-defined awake call commands.
 - [ ] **Speaker Recognition & Voice Biometrics (Owner-Only Voice Lock)**
-  - Integrate a speaker verification model (e.g., `Resemblyzer`, `Sherpa-ONNX`, or `SpeechBrain ECAPA-TDNN`) to ensure NOVA only responds to the primary user's voice.
-  - **Voice Enrollment**: One-time setup script/UI wizard to capture 3–5 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/NOVA/`).
+  - Integrate a speaker verification model (e.g., `Resemblyzer`, `Sherpa-ONNX`, or `SpeechBrain ECAPA-TDNN`) to ensure SANA only responds to the primary user's voice.
+  - **Voice Enrollment**: One-time setup script/UI wizard to capture 3–5 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/SANA/`).
   - **Real-Time Verification**: Extract acoustic embeddings from captured speech audio and compute cosine similarity against the owner's voiceprint before executing commands.
   - **Rejection of Unauthorized Voices**: Silently drop or log non-matching voices (family, friends, TV/YouTube background chatter) below similarity threshold (e.g., `< 0.75`).
 
@@ -65,13 +65,13 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 - [ ] **Real-Time Hand Landmark Tracking (`gesture_service.py`)**
   - Integrate **Google MediaPipe Hands** + **OpenCV** running on CPU (30–60 FPS) with negligible compute overhead.
-  - Add optional toggle via voice (*"Nova, enable/disable gesture mode"*) or hotkey to conserve resources when camera is unneeded.
+  - Add optional toggle via voice (*"Sana, enable/disable gesture mode"*) or hotkey to conserve resources when camera is unneeded.
 - [ ] **Air Gesture Controls:**
   - ✋ **Open Palm $\rightarrow$ ✊ Fist:** Play / Pause active media.
   - 🤏 **Thumb-Index Pinch & Move:** Continuous smooth system volume adjustment.
   - 👈 / 👉 **Horizontal Air Swipe:** Switch active browser tabs or virtual desktops.
   - ✌️ **Two Fingers Point Up/Down:** Smooth document / webpage scrolling.
-  - 🤫 **Index Finger to Lips:** Instant audio mute / put NOVA to sleep.
+  - 🤫 **Index Finger to Lips:** Instant audio mute / put SANA to sleep.
 - [ ] **HUD Gesture Feedback Overlay:**
   - Display subtle hand tracking skeleton or visual icon on the floating HUD when camera mode is engaged.
 
@@ -105,7 +105,7 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 ## 📦 6. Deployment, Packaging & Distribution
 
 - [ ] **Start with Windows (Auto-Start)**
-  - Add optional toggle in System Tray to launch NOVA automatically on Windows boot.
+  - Add optional toggle in System Tray to launch SANA automatically on Windows boot.
 - [ ] **Standalone One-Click Installer**
   - Build signed `.exe` installer using `PyInstaller` and `Inno Setup` bundling CUDA DLLs and default models.
 - [ ] **Automatic Dependency & Model Downloader**
@@ -114,32 +114,32 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 ---
 
-## 📱 7. NOVA Mobile — Android AI Assistant
+## 📱 7. SANA Mobile — Android AI Assistant
 
-> Internet-connected mobile companion to NOVA PC. Uses NOVA's PC as the AI brain over WiFi/mobile data, with on-device fallback for basic offline commands.
+> Internet-connected mobile companion to SANA PC. Uses SANA's PC as the AI brain over WiFi/mobile data, with on-device fallback for basic offline commands.
 
 ### 🏗️ Architecture
-- **Online mode:** Android app streams mic audio → NOVA PC WebSocket server → Whisper `small.en` transcribes → response sent back → phone executes command
+- **Online mode:** Android app streams mic audio → SANA PC WebSocket server → Whisper `small.en` transcribes → response sent back → phone executes command
 - **Offline mode:** On-device Whisper tiny/base model (ONNX via Whisper.cpp JNI) for basic commands without internet
 
 ### 📋 Tasks
-- [ ] **Add WebSocket Server to NOVA PC (`server/ws_server.py`)**
+- [ ] **Add WebSocket Server to SANA PC (`server/ws_server.py`)**
   - Accept audio stream from Android client over LAN/internet
   - Transcribe using existing Whisper pipeline and return text result
   - Accept remote command execution requests from Android
 - [ ] **Android App — Core (`app/`)** *(Kotlin, Android Studio)*
   - Microphone recording and streaming
   - Wake word detection on-device (tiny Whisper ONNX)
-  - Connect to NOVA PC WebSocket server
-  - Floating overlay HUD (like NOVA's desktop HUD)
+  - Connect to SANA PC WebSocket server
+  - Floating overlay HUD (like SANA's desktop HUD)
 - [ ] **Android App — Phone Control**
   - Open apps via Android Intents (*"Open WhatsApp"*, *"Open YouTube"*)
   - Send WhatsApp messages via Intents
   - Control volume, brightness, flashlight
   - Read notifications aloud via Accessibility Service
 - [ ] **Android App — Remote PC Control**
-  - Send commands to NOVA PC over WebSocket (*"Open Chrome on PC"*, *"Lock PC"*)
-  - View PC status from phone (CPU, RAM, NOVA active/sleeping)
+  - Send commands to SANA PC over WebSocket (*"Open Chrome on PC"*, *"Lock PC"*)
+  - View PC status from phone (CPU, RAM, SANA active/sleeping)
 - [ ] **Offline / Online Auto-Switch**
   - Detect internet/LAN availability and seamlessly switch between on-device and PC-powered AI
 - [ ] **Android App — UI**
@@ -157,5 +157,5 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 | **v1.3** | *Vision Multimodal* | MediaPipe hand gestures (Air swipe, Pinch volume, Play/Pause). |
 | **v1.4** | *Intelligence* | Multi-turn conversation memory, streaming HUD text. |
 | **v2.0** | *Production Release* | Complete Inno Setup installer with Auto-start and settings GUI. |
-| **v3.0** | *Mobile Expansion* | NOVA Android app — voice control for phone + remote PC control over internet. |
+| **v3.0** | *Mobile Expansion* | SANA Android app — voice control for phone + remote PC control over internet. |
 

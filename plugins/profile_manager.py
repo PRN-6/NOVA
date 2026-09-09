@@ -3,29 +3,29 @@ import os
 import logging
 from typing import Dict, Any
 
-logger = logging.getLogger("NOVA.ProfileManager")
+logger = logging.getLogger("SANA.ProfileManager")
 
 # Windows AppData path for user settings
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "NOVA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
 os.makedirs(APPDATA_DIR, exist_ok=True)
 
 PROFILE_PATH = os.path.join(APPDATA_DIR, "user_profile.json")
 
 DEFAULT_PROFILE = {
     "user_name": "User",
-    "assistant_name": "Nova",
-    "wake_word": "nova",
+    "assistant_name": "Sana",
+    "wake_word": "sana",
     "wake_threshold": 0.50,
     "whisper_device": "cuda",
     "whisper_model": "base.en",
     "hud_enabled": True,
-    "theme": "dark_cyberpunk"
+    "theme": "obsidian_red"
 }
 
 class ProfileManager:
     """
     Manages user profile, preferences, and assistant settings.
-    Persists configuration cleanly to %APPDATA%/NOVA/user_profile.json.
+    Persists configuration cleanly to %APPDATA%/SANA/user_profile.json.
     """
     def __init__(self):
         self.profile: Dict[str, Any] = DEFAULT_PROFILE.copy()

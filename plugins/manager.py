@@ -10,10 +10,10 @@ import inspect
 from typing import Callable, Dict, List, Optional
 from plugins.base_plugin import BasePlugin
 
-logger = logging.getLogger("NOVA.PluginManager")
+logger = logging.getLogger("SANA.PluginManager")
 
 # 1. Paths Configuration
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "NOVA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
 USER_PLUGINS_DIR = os.path.join(APPDATA_DIR, "plugins")
 CONFIG_PATH = os.path.join(APPDATA_DIR, "plugins_config.json")
 BUILTIN_PLUGINS_DIR = os.path.dirname(__file__)
@@ -24,10 +24,10 @@ os.makedirs(USER_PLUGINS_DIR, exist_ok=True)
 
 class PluginManager:
     """
-    Production-grade Plugin Architecture for NOVA:
+    Production-grade Plugin Architecture for SANA:
     - Shipped Built-In Plugins: In application directory (Read-only / Safe).
-    - Custom User Plugins: In %APPDATA%/NOVA/plugins/ (Read-write / Portable).
-    - User Configuration: In %APPDATA%/NOVA/plugins_config.json.
+    - Custom User Plugins: In %APPDATA%/SANA/plugins/ (Read-write / Portable).
+    - User Configuration: In %APPDATA%/SANA/plugins_config.json.
     """
     def __init__(self):
         self.plugins: Dict[str, BasePlugin] = {}
@@ -67,7 +67,7 @@ class PluginManager:
         """Dynamically loads and registers a plugin class from a file."""
         try:
             prefix = "builtin" if is_builtin else "user"
-            unique_mod_name = f"nova_plugins_{prefix}_{module_name}"
+            unique_mod_name = f"sana_plugins_{prefix}_{module_name}"
             spec = importlib.util.spec_from_file_location(unique_mod_name, file_path)
             if spec and spec.loader:
                 module = importlib.util.module_from_spec(spec)
@@ -191,7 +191,7 @@ import subprocess
 from typing import Callable, Dict, List
 from plugins.base_plugin import BasePlugin
 
-logger = logging.getLogger("NOVA.Plugin.{class_name}")
+logger = logging.getLogger("SANA.Plugin.{class_name}")
 
 class {class_name}(BasePlugin):
     id = "{clean_id}"
@@ -239,7 +239,7 @@ class {class_name}(BasePlugin):
         return file_path
 
     def uninstall_plugin(self, plugin_id: str) -> bool:
-        """Deletes a custom plugin file from %APPDATA%/NOVA/plugins/."""
+        """Deletes a custom plugin file from %APPDATA%/SANA/plugins/."""
         plugin = self.get_plugin(plugin_id)
         if not plugin or plugin.is_builtin:
             # Cannot uninstall built-in core plugins

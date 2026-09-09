@@ -10,10 +10,10 @@ import json
 import subprocess
 from typing import Dict, Any, List, Optional, Callable
 
-logger = logging.getLogger("NOVA.CUDAManager")
+logger = logging.getLogger("SANA.CUDAManager")
 
 # User AppData directory for persistent external CUDA runtime storage
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "NOVA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
 APPDATA_CUDA_DIR = os.path.join(APPDATA_DIR, "cuda")
 APPDATA_CUDA_BIN = os.path.join(APPDATA_CUDA_DIR, "bin")
 
@@ -161,7 +161,7 @@ def _get_wheel_url(package_name: str) -> Optional[str]:
     """Queries PyPI JSON API to get the official Windows AMD64 wheel URL."""
     try:
         api_url = f"https://pypi.org/pypi/{package_name}/json"
-        req = urllib.request.Request(api_url, headers={"User-Agent": "NOVA-Assistant-Installer/1.1"})
+        req = urllib.request.Request(api_url, headers={"User-Agent": "SANA-Assistant-Installer/1.1"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             for file_info in data.get("urls", []):
@@ -178,7 +178,7 @@ def start_cuda_runtime_download(
 ) -> Dict[str, Any]:
     """
     Starts asynchronous download and extraction of CUDA 12 runtime DLLs
-    into AppData/NOVA/cuda/bin.
+    into AppData/SANA/cuda/bin.
     """
     global _download_state
     with _download_lock:
@@ -242,7 +242,7 @@ def start_cuda_runtime_download(
                     _download_state["status"] = f"Downloading {pkg_name} ({idx + 1}/{total_pkgs})..."
 
                 temp_whl = os.path.join(APPDATA_DIR, f"{pkg_name}_temp.whl")
-                req = urllib.request.Request(url, headers={"User-Agent": "NOVA-Assistant/1.1"})
+                req = urllib.request.Request(url, headers={"User-Agent": "SANA-Assistant/1.1"})
 
                 with urllib.request.urlopen(req, timeout=30) as response, open(temp_whl, "wb") as out_file:
                     pkg_size = response.length or (400 * 1024 * 1024)

@@ -3,7 +3,7 @@ from skills.chrome import Chrome
 from skills.web_search import WebSearch
 from plugins.manager import plugin_manager
 
-logger = logging.getLogger("NOVA.SkillManager")
+logger = logging.getLogger("SANA.SkillManager")
 
 class SkillManager:
     def __init__(self):

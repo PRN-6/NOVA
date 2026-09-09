@@ -1,12 +1,81 @@
+import re
 import logging
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from actions.skill_manager import manager
-
 from plugins.manager import plugin_manager
 
-logger = logging.getLogger("NOVA.SemanticRouter")
+logger = logging.getLogger("SANA.SemanticRouter")
+
+class SimpleTfidfVectorizer:
+    """
+    Lightweight, pure-NumPy TF-IDF Vectorizer with unigram/bigram tokenization.
+    Avoids heavy C-extension DLLs (scipy/sklearn) to guarantee compatibility across
+    all Windows systems and App Control / WDAC policies.
+    """
+    def __init__(self, ngram_range=(1, 2)):
+        self.ngram_range = ngram_range
+        self.vocabulary = {}
+        self.idf_ = None
+
+    def _tokenize(self, text: str):
+        words = re.findall(r'\b\w+\b', text.lower())
+        tokens = []
+        n_min, n_max = self.ngram_range
+        for n in range(n_min, n_max + 1):
+            for i in range(len(words) - n + 1):
+                tokens.append(' '.join(words[i:i+n]))
+        return tokens
+
+    def fit_transform(self, documents: list) -> np.ndarray:
+        doc_tokens = [self._tokenize(doc) for doc in documents]
+        vocab = {}
+        for tokens in doc_tokens:
+            for t in tokens:
+                if t not in vocab:
+                    vocab[t] = len(vocab)
+        self.vocabulary = vocab
+        n_docs = len(documents)
+        n_vocab = len(vocab)
+        if n_vocab == 0:
+            return np.zeros((n_docs, 0), dtype=np.float32)
+
+        df = np.zeros(n_vocab, dtype=np.float32)
+        for tokens in doc_tokens:
+            unique_tokens = set(tokens)
+            for t in unique_tokens:
+                df[vocab[t]] += 1
+
+        # Smooth Inverse Document Frequency
+        self.idf_ = np.log((1.0 + n_docs) / (1.0 + df)) + 1.0
+
+        matrix = np.zeros((n_docs, n_vocab), dtype=np.float32)
+        for i, tokens in enumerate(doc_tokens):
+            for t in tokens:
+                matrix[i, vocab[t]] += 1
+            matrix[i] *= self.idf_
+            norm = np.linalg.norm(matrix[i])
+            if norm > 0:
+                matrix[i] /= norm
+        return matrix
+
+    def transform(self, documents: list) -> np.ndarray:
+        n_docs = len(documents)
+        n_vocab = len(self.vocabulary)
+        if n_vocab == 0:
+            return np.zeros((n_docs, 0), dtype=np.float32)
+
+        matrix = np.zeros((n_docs, n_vocab), dtype=np.float32)
+        for i, doc in enumerate(documents):
+            tokens = self._tokenize(doc)
+            for t in tokens:
+                if t in self.vocabulary:
+                    matrix[i, self.vocabulary[t]] += 1
+            matrix[i] *= self.idf_
+            norm = np.linalg.norm(matrix[i])
+            if norm > 0:
+                matrix[i] /= norm
+        return matrix
+
 
 class SemanticRouter:
     def __init__(self):
@@ -26,7 +95,7 @@ class SemanticRouter:
                 self.tool_names.append(tool)
                 self.training_sentences.append(phrase)
                 
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+        self.vectorizer = SimpleTfidfVectorizer(ngram_range=(1, 2))
         if self.training_sentences:
             self.knowledge_base_vectors = self.vectorizer.fit_transform(self.training_sentences)
             logger.info(f"Semantic Router indexed {len(self.tool_names)} training phrases across active skills & plugins.")
@@ -41,13 +110,13 @@ class SemanticRouter:
         cleaned_text = user_text.lower().strip(".!?, \t\n")
 
         # Instant dictation / typing match for any phrase starting with "type ..." or "write ..."
-        import re
-        if re.match(r'^(?:nova,?\s*)?(?:please\s*)?(?:can\s+you\s*)?(?:type\s+that|type\s+out|type|write\s+that|write\s+out|write)\s+', cleaned_text):
+        if re.match(r'^(?:sana,?\s*|sena,?\s*|orion,?\s*|nova,?\s*)?(?:please\s*)?(?:can\s+you\s*)?(?:type\s+that|type\s+out|type|write\s+that|write\s+out|write)\s+', cleaned_text):
             logger.info("Fast Lane Router matched 'system.type_text' (Direct Dictation Prefix)")
             return "system.type_text"
 
         user_vector = self.vectorizer.transform([cleaned_text])
-        similarities = cosine_similarity(user_vector, self.knowledge_base_vectors)[0]
+        # Cosine similarity between normalized vectors is dot product
+        similarities = (user_vector @ self.knowledge_base_vectors.T)[0]
         
         best_match_index = int(np.argmax(similarities))
         best_score = float(similarities[best_match_index])

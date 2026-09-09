@@ -10,7 +10,7 @@ if PROJECT_ROOT not in sys.path:
 import webview
 from ui.dashboard_bridge import DashboardAPI
 
-logger = logging.getLogger("NOVA.DashboardRunner")
+logger = logging.getLogger("SANA.DashboardRunner")
 
 def get_dashboard_html_path() -> str:
     """Resolves the path to index.html supporting both source and PyInstaller."""
@@ -28,7 +28,7 @@ def get_dashboard_html_path() -> str:
     return html_path
 
 def run_dashboard():
-    """Launches the modern NOVA Control Center via WebView2."""
+    """Launches the modern SANA Control Center via WebView2."""
     html_path = get_dashboard_html_path()
     if not os.path.exists(html_path):
         logger.error(f"Dashboard HTML file not found at: {html_path}")
@@ -36,7 +36,7 @@ def run_dashboard():
 
     api = DashboardAPI()
     window = webview.create_window(
-        title="NOVA Control Center",
+        title="SANA Control Center",
         url=html_path,
         js_api=api,
         width=1000,
@@ -46,7 +46,7 @@ def run_dashboard():
     )
     api.set_window(window)
 
-    logger.info(f"Opening NOVA Tailwind Control Center via WebView2 ({html_path})...")
+    logger.info(f"Opening SANA Tailwind Control Center via WebView2 ({html_path})...")
     webview.start(debug=False)
 
 if __name__ == "__main__":

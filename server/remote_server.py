@@ -9,7 +9,7 @@ import io
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
-logger = logging.getLogger("NOVA.RemoteServer")
+logger = logging.getLogger("SANA.RemoteServer")
 
 IS_FROZEN = getattr(sys, "frozen", False)
 BASE_DIR = sys._MEIPASS if IS_FROZEN else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,7 +67,7 @@ def generate_qr_png_bytes(url: str) -> bytes:
 _global_on_command_callback = None
 _global_server_port = 8765
 
-class NovaRemoteHandler(SimpleHTTPRequestHandler):
+class SanaRemoteHandler(SimpleHTTPRequestHandler):
     """
     HTTP Request Handler serving the Mobile Remote Web App and REST API endpoints.
     """
@@ -99,7 +99,7 @@ class NovaRemoteHandler(SimpleHTTPRequestHandler):
             local_ip = get_local_ip()
             self._send_json({
                 "status": "online",
-                "app": "NOVA",
+                "app": "SANA",
                 "version": "1.0.0",
                 "pc_name": socket.gethostname(),
                 "local_ip": local_ip,
@@ -194,7 +194,7 @@ class NovaRemoteHandler(SimpleHTTPRequestHandler):
                 logger.info(f"📱 Remote Mobile Command Received: '{command_text}'")
 
                 if _global_on_command_callback:
-                    # Execute on PC via NOVA Core
+                    # Execute on PC via SANA Core
                     result = _global_on_command_callback(command_text)
                     if isinstance(result, dict):
                         self._send_json({
@@ -225,13 +225,13 @@ class NovaRemoteHandler(SimpleHTTPRequestHandler):
         self.send_error(404, "Unknown API endpoint")
 
     def log_message(self, format, *args):
-        """Redirect HTTP server logging to NOVA's logger (debug level)."""
+        """Redirect HTTP server logging to SANA's logger (debug level)."""
         logger.debug(f"{self.address_string()} - - {format % args}")
 
 
 class RemoteServerManager:
     """
-    Manages the lifecycle of the NOVA Mobile Web Remote Server.
+    Manages the lifecycle of the SANA Mobile Web Remote Server.
     """
     def __init__(self, host: str = "0.0.0.0", port: int = 8765):
         self.host = host
@@ -255,13 +255,13 @@ class RemoteServerManager:
 
 
         try:
-            self.httpd = ThreadedHTTPServer((self.host, self.port), NovaRemoteHandler)
+            self.httpd = ThreadedHTTPServer((self.host, self.port), SanaRemoteHandler)
             self.is_running = True
             self.server_thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
             self.server_thread.start()
 
             url = get_remote_url(self.port)
-            logger.info(f"📱 NOVA Mobile Web Remote Server is active at: {url}")
+            logger.info(f"📱 SANA Mobile Web Remote Server is active at: {url}")
             logger.info(f"📱 Connect your phone on the same Wi-Fi network and open: {url}")
             return url
         except Exception as e:
@@ -272,7 +272,7 @@ class RemoteServerManager:
     def stop(self):
         """Stops the remote server."""
         if self.httpd and self.is_running:
-            logger.info("Stopping NOVA Mobile Web Remote Server...")
+            logger.info("Stopping SANA Mobile Web Remote Server...")
             self.is_running = False
             try:
                 self.httpd.shutdown()

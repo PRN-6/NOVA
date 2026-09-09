@@ -12,9 +12,9 @@ BASE_DIR = sys._MEIPASS if IS_FROZEN else os.path.dirname(os.path.abspath(__file
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. User AppData Directory — safe persistent storage for logs & config
 # ─────────────────────────────────────────────────────────────────────────────
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "NOVA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
 os.makedirs(APPDATA_DIR, exist_ok=True)
-LOG_FILE = os.path.join(APPDATA_DIR, "nova.log")
+LOG_FILE = os.path.join(APPDATA_DIR, "sana.log")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. CUDA 12 Runtime DLL paths (required by faster-whisper / ctranslate2)
@@ -54,26 +54,27 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=log_handlers
 )
-logger = logging.getLogger("NOVA.Core")
+logger = logging.getLogger("SANA.Core")
 
-logger.info(f"NOVA starting — frozen={IS_FROZEN}, base={BASE_DIR}")
+logger.info(f"SANA starting — frozen={IS_FROZEN}, base={BASE_DIR}")
 logger.info(f"Log file: {LOG_FILE}")
 
-from speech.streamer import SpeechStreamer
-from actions.executor import execute_system_command, execute_system_command_detailed
-from ui.manager import UIManager
-from server.remote_server import start_remote_server, stop_remote_server, get_remote_url
 import config
 
 
 def main() -> None:
     if "--dashboard" in sys.argv or "--settings" in sys.argv:
-        logger.info("Launching NOVA Control Center Dashboard...")
+        logger.info("Launching SANA Control Center Dashboard...")
         from ui.dashboard_runner import run_dashboard
         run_dashboard()
         return
 
-    logger.info("Initializing NOVA Assistant Services...")
+    from speech.streamer import SpeechStreamer
+    from actions.executor import execute_system_command, execute_system_command_detailed
+    from ui.manager import UIManager
+    from server.remote_server import start_remote_server, stop_remote_server, get_remote_url
+
+    logger.info("Initializing SANA Assistant Services...")
 
     ui_manager = UIManager()
 
@@ -141,7 +142,7 @@ def main() -> None:
         audio_thread.start()
 
         # Run the Floating HUD Tkinter loop on the main thread
-        logger.info("Starting NOVA Floating HUD Overlay...")
+        logger.info("Starting SANA Floating HUD Overlay...")
         ui_manager.run_hud_loop()
 
     except KeyboardInterrupt:
@@ -151,7 +152,7 @@ def main() -> None:
         sys.exit(1)
     finally:
         stop_remote_server()
-        logger.info("Cleanup completed. NOVA is offline.")
+        logger.info("Cleanup completed. SANA is offline.")
 
 
 if __name__ == "__main__":

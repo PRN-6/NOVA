@@ -1,15 +1,15 @@
 :root {
-    --bg-primary: #0a0e17;
-    --bg-secondary: #111827;
-    --bg-card: rgba(17, 24, 39, 0.75);
-    --bg-card-hover: rgba(31, 41, 55, 0.85);
+    --bg-primary: #0a0a0d;
+    --bg-secondary: #121217;
+    --bg-card: rgba(18, 18, 23, 0.85);
+    --bg-card-hover: rgba(28, 28, 36, 0.95);
     --border-color: rgba(255, 255, 255, 0.08);
-    --border-active: rgba(6, 182, 212, 0.4);
+    --border-active: rgba(239, 68, 68, 0.5);
     
-    --primary: #06b6d4;
-    --primary-glow: rgba(6, 182, 212, 0.25);
-    --accent: #8b5cf6;
-    --accent-glow: rgba(139, 92, 246, 0.25);
+    --primary: #ef4444;
+    --primary-glow: rgba(239, 68, 68, 0.3);
+    --accent: #e11d48;
+    --accent-glow: rgba(225, 29, 72, 0.3);
     --success: #10b981;
     --error: #ef4444;
     --warning: #f59e0b;

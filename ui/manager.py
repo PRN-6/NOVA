@@ -4,7 +4,7 @@ import sys
 from ui.hud import FloatingHUD
 from ui.tray import SystemTray
 
-logger = logging.getLogger("NOVA.UIManager")
+logger = logging.getLogger("SANA.UIManager")
 
 class UIManager:
     """
@@ -36,7 +36,7 @@ class UIManager:
         """Triggered when the wake word is spotted."""
         if not self.is_muted:
             self.hud.set_state("listening", text="Listening for command...")
-            self.tray.set_status_color("#06B6D4")
+            self.tray.set_status_color("#EF4444")
 
     def on_audio_energy(self, level: float):
         """Updates live audio energy for waveform visualization."""
@@ -46,7 +46,7 @@ class UIManager:
     def on_transcription(self, text: str):
         """Triggered when speech settles and transcription starts."""
         self.hud.set_state("processing", text=f'"{text}"')
-        self.tray.set_status_color("#8B5CF6")
+        self.tray.set_status_color("#F97316")
 
     def on_action_completed(self, tool_name: str, success: bool = True):
         """Triggered when a skill finishes executing."""
@@ -61,8 +61,8 @@ class UIManager:
     def on_sleep(self):
         """Triggered when speech times out or returns to idle."""
         if not self.is_muted:
-            self.hud.set_state("idle", text="Say 'Nova' to begin")
-            self.tray.set_status_color("#06B6D4")
+            self.hud.set_state("idle", text="Say 'Sana' to begin")
+            self.tray.set_status_color("#EF4444")
 
     def toggle_hud(self):
         """Toggles HUD visibility on/off."""
@@ -88,13 +88,13 @@ class UIManager:
             self.streamer.set_muted(self.is_muted)
 
         if self.is_muted:
-            self.hud.set_state("error", title="🔇 NOVA MUTED", text="Microphone input paused")
+            self.hud.set_state("error", title="🔇 SANA MUTED", text="Microphone input paused")
             self.tray.set_status_color("#EF4444")
-            logger.info("NOVA Muted (Microphone Paused).")
+            logger.info("SANA Muted (Microphone Paused).")
         else:
-            self.hud.set_state("success", title="🎙️ NOVA ACTIVE", text="Listening for 'Nova'...")
-            self.tray.set_status_color("#06B6D4")
-            logger.info("NOVA Unmuted (Microphone Listening).")
+            self.hud.set_state("success", title="🎙️ SANA ACTIVE", text="Listening for 'Sana'...")
+            self.tray.set_status_color("#EF4444")
+            logger.info("SANA Unmuted (Microphone Listening).")
 
     def shutdown(self):
         """Gracefully shuts down HUD and application."""

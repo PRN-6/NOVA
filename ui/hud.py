@@ -17,7 +17,7 @@ except Exception:
 
 class FloatingHUD:
     """
-    A cinematic, full-screen transparent HUD overlay for NOVA.
+    A cinematic, full-screen transparent HUD overlay for SANA.
     Features:
     - 100% click-through (WS_EX_TRANSPARENT) so games & apps are completely unobstructed.
     - Multi-tiered high-intensity glowing neon laser border around monitor edges on speech detection.
@@ -36,8 +36,8 @@ class FloatingHUD:
         # Canvas Background Transparency
         self.transparent_color = "#010101"
         self.text_primary = "#FFFFFF"
-        self.text_secondary = "#CBD5E1"
-        self.pill_bg = "#070B14"
+        self.text_secondary = "#E2E8F0"
+        self.pill_bg = "#0A0A0E"
         
         # Color Palettes per State: (Accent Line, Soft Bloom, Subtle Halo)
         self.themes = {
@@ -46,20 +46,20 @@ class FloatingHUD:
                 "badge": "IDLE"
             },
             "listening": {
-                "accent": "#0284C7", "bloom": "#0369A1", "halo": "#0C4A6E",
-                "badge": "● NOVA // LISTENING"
+                "accent": "#F43F5E", "bloom": "#E11D48", "halo": "#881337",
+                "badge": "● SANA // LISTENING"
             },
             "processing": {
-                "accent": "#8B5CF6", "bloom": "#6D28D9", "halo": "#4C1D95",
-                "badge": "⚡ NOVA // PROCESSING"
+                "accent": "#FB7185", "bloom": "#BE123C", "halo": "#4C0519",
+                "badge": "⚡ SANA // PROCESSING"
             },
             "success": {
-                "accent": "#059669", "bloom": "#047857", "halo": "#064E3B",
-                "badge": "✔ NOVA // ACTION EXECUTED"
+                "accent": "#10B981", "bloom": "#059669", "halo": "#064E3B",
+                "badge": "✔ SANA // ACTION EXECUTED"
             },
             "error": {
-                "accent": "#DC2626", "bloom": "#B91C1C", "halo": "#7F1D1D",
-                "badge": "✖ NOVA // UNKNOWN COMMAND"
+                "accent": "#EF4444", "bloom": "#B91C1C", "halo": "#7F1D1D",
+                "badge": "✖ SANA // UNKNOWN COMMAND"
             }
         }
         
@@ -79,7 +79,7 @@ class FloatingHUD:
     def start_ui(self):
         """Initializes the Tkinter window and starts its main loop."""
         self.root = tk.Tk()
-        self.root.title("NOVA Fullscreen HUD Overlay")
+        self.root.title("SANA Fullscreen HUD Overlay")
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
         
@@ -241,7 +241,7 @@ class FloatingHUD:
         # ─────────────────────────────────────────────────────────────
         # 3. TOP TELEMETRY RIBBON BADGE
         # ─────────────────────────────────────────────────────────────
-        badge_text = theme.get("badge", "NOVA")
+        badge_text = theme.get("badge", "SANA")
         top_cx = sw // 2
         top_cy = margin + 16
         
@@ -250,7 +250,7 @@ class FloatingHUD:
             top_cx - 120, top_cy - 11,
             top_cx + 120, top_cy + 11,
             radius=8,
-            fill="#090D16",
+            fill="#0C0C10",
             outline=theme["accent"],
             width=1.2
         )
