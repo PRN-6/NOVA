@@ -2,6 +2,7 @@ import logging
 import ollama
 from actions.skill_manager import manager
 from actions.router import SemanticRouter
+from speech.streamer import autocorrect_speech_command
 
 logger = logging.getLogger("PRIVACY68.ActionExecutor")
 fast_router = SemanticRouter()
@@ -26,9 +27,18 @@ def execute_system_command_detailed(text: str, on_action_callback = None) -> dic
     Executes a command via Fast Lane Semantic Router or Ollama AI Fallback.
     Returns a dict: {"success": bool, "tool": str, "method": str, "message": str}
     """
-    cleaned = text.strip()
+    cleaned = autocorrect_speech_command(text.strip())
     if not cleaned:
         return {"success": False, "tool": "None", "method": "none", "message": "Empty command"}
+
+    # Ignore standalone wake words or greetings (never search them in Chrome)
+    STANDALONE_WAKE_WORDS = {
+        "alexa", "nova", "sana", "privacy68", "jarvis", "friday", "leo", "serena",
+        "hey alexa", "hey nova", "hey sana", "hey jarvis", "hi", "hello", "yes", "okay", "yeah"
+    }
+    if cleaned.lower().strip(".!?, ") in STANDALONE_WAKE_WORDS or len(cleaned) <= 2:
+        logger.info(f"Input '{cleaned}' is a standalone wake greeting. No external action required.")
+        return {"success": True, "tool": "greeting_ack", "method": "none", "message": "Listening for command..."}
 
     # 1. Fast Lane (Instant Execution)
     fast_tool = fast_router.route(cleaned)

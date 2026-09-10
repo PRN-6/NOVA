@@ -36,10 +36,10 @@ class DashboardAPI:
                 "assistant_name": profile_manager.get("assistant_name", "Sana"),
                 "wake_word": profile_manager.get("wake_word", "sana"),
                 "wake_threshold": float(profile_manager.get("wake_threshold", 0.50)),
-                "whisper_model": profile_manager.get("whisper_model", "base.en"),
+                "whisper_model": profile_manager.get("whisper_model", "small.en"),
                 "whisper_device": profile_manager.get("whisper_device", "cuda"),
                 "hud_enabled": bool(profile_manager.get("hud_enabled", True)),
-                "theme": profile_manager.get("theme", "dark_cyberpunk")
+                "theme": profile_manager.get("theme", "obsidian_red"),
             }
         except Exception as e:
             logger.error(f"Error getting profile: {e}")
@@ -54,6 +54,7 @@ class DashboardAPI:
         except Exception as e:
             logger.error(f"Error saving profile: {e}")
             return {"success": False, "message": str(e)}
+
 
     # ---------------- Plugin Management ---------------- #
 
@@ -160,7 +161,34 @@ class DashboardAPI:
             logger.error(f"Error installing plugin file: {e}")
             return {"success": False, "message": str(e)}
 
+    # ---------------- WhatsApp Contacts ---------------- #
+
+    def get_whatsapp_contacts(self) -> List[Dict]:
+        """Returns the saved WhatsApp contacts list for the plugin config UI."""
+        try:
+            from plugins.manager import plugin_manager
+            plugin = plugin_manager.get_plugin("whatsapp")
+            if plugin and hasattr(plugin, "load_contacts"):
+                return plugin.load_contacts()
+        except Exception as e:
+            logger.error(f"Error loading WhatsApp contacts: {e}")
+        return []
+
+    def save_whatsapp_contacts(self, contacts: List[Dict]) -> Dict:
+        """Saves the WhatsApp contacts list from the plugin config UI."""
+        try:
+            from plugins.manager import plugin_manager
+            plugin = plugin_manager.get_plugin("whatsapp")
+            if plugin and hasattr(plugin, "save_contacts"):
+                success = plugin.save_contacts(contacts)
+                return {"success": success, "message": f"Saved {len(contacts)} contacts." if success else "Save failed."}
+            return {"success": False, "message": "WhatsApp plugin not found or not loaded."}
+        except Exception as e:
+            logger.error(f"Error saving WhatsApp contacts: {e}")
+            return {"success": False, "message": str(e)}
+
     # ---------------- System Diagnostics & Telemetry ---------------- #
+
 
     def get_system_diagnostics(self) -> List[Dict[str, Any]]:
         """Runs hardware and environment health checks."""

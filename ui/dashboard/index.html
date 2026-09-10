@@ -381,15 +381,16 @@
             <!-- Custom Wake Word Input -->
             <div class="space-y-2">
               <label class="text-xs font-semibold text-slate-300">Active Wake Word(s)</label>
-              <input type="text" id="wake_word" placeholder="e.g. Nova, Leo, Serena, Jarvis"
+              <input type="text" id="wake_word" placeholder="e.g. Alexa, Nova, Leo, Serena, Jarvis"
                 class="w-full px-4 py-2.5 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white font-mono text-sm tracking-wide transition-colors">
-              <p class="text-[11px] text-slate-500">You can also specify multiple comma-separated words (e.g. <span class="text-red-400 font-mono">Nova, Leo, Serena</span>).</p>
+              <p class="text-[11px] text-slate-500">You can also specify multiple comma-separated words (e.g. <span class="text-red-400 font-mono">Alexa, Nova, Jarvis</span>).</p>
             </div>
 
             <!-- Preset Pills -->
             <div class="space-y-1.5">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Quick Presets</label>
               <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="setPresetWake('Alexa')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-cyan-500/20 hover:border-cyan-500/40 border border-nova-border text-xs font-medium text-cyan-300 transition-all">🎙️ Alexa</button>
                 <button type="button" onclick="setPresetWake('Nova')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">✨ Nova</button>
                 <button type="button" onclick="setPresetWake('Leo')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">🦁 Leo</button>
                 <button type="button" onclick="setPresetWake('Serena')" class="px-3 py-1.5 rounded-lg bg-nova-surface2 hover:bg-red-500/20 hover:border-red-500/40 border border-nova-border text-xs font-medium text-slate-200 transition-all">🌙 Serena</button>
@@ -442,23 +443,31 @@
 
             <div class="space-y-2">
               <label class="text-xs font-semibold text-slate-300">Whisper Neural Model</label>
-              <select id="whisper_model"
+              <select id="whisper_model" onchange="saveProfile()"
                 class="w-full px-4 py-2 rounded-xl bg-nova-surface border border-nova-border focus:border-red-500 focus:outline-none text-white text-sm">
                 <option value="tiny.en">tiny.en (Ultralight ~40MB — Lowest RAM)</option>
                 <option value="base.en">base.en (Balanced ~140MB — Standard Speed)</option>
                 <option value="small.en" selected>small.en (High Accuracy ~460MB — Recommended)</option>
               </select>
             </div>
+          </div>
 
-            <!-- Save Action Button -->
-            <div class="pt-4">
-              <button onclick="saveProfile()"
-                class="w-full flex items-center justify-center space-x-2 px-5 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-lg shadow-red-600/30 transition-all">
-                <i data-lucide="save" class="w-4 h-4"></i>
-                <span>Save Voice & Wake Preferences</span>
-              </button>
+          <!-- Save & Apply Changes Action Bar -->
+          <div class="col-span-1 md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-nova-card border border-red-500/20 shadow-lg shadow-red-950/20">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <i data-lucide="check-check" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-white">Save Changes</h4>
+                <p class="text-[11px] text-slate-400">Settings are automatically stored to your user profile and active immediately.</p>
+              </div>
             </div>
-
+            <button type="button" onclick="saveProfile()"
+              class="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold text-xs shadow-lg shadow-red-500/20 transition-all active:scale-95 cursor-pointer">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Save & Apply Settings</span>
+            </button>
           </div>
 
         </div>
@@ -477,10 +486,17 @@
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
     let allPlugins = [];
+    let enrollmentStep = 1;
+    const ENROLLMENT_PROMPTS = [
+      "\"Alexa, open my browser and search for YouTube\"",
+      "\"Alexa, what is my system status and battery level?\"",
+      "\"Alexa, take a screenshot and minimize all windows\""
+    ];
 
     function setPresetWake(name) {
       document.getElementById('wake_word').value = name;
       document.getElementById('assistant_name').value = name;
+      saveProfile();
     }
 
     // Tab switcher
@@ -541,7 +557,6 @@
         if (document.getElementById('whisper_model')) document.getElementById('whisper_model').value = p.whisper_model || 'small.en';
         if (document.getElementById('wake_threshold')) document.getElementById('wake_threshold').value = p.wake_threshold || 0.50;
         if (document.getElementById('sens_val')) document.getElementById('sens_val').innerText = parseFloat(p.wake_threshold || 0.50).toFixed(2);
-
         if (document.getElementById('header-user-tag')) document.getElementById('header-user-tag').innerText = p.user_name || 'User';
         if (document.getElementById('quick-wake-word')) document.getElementById('quick-wake-word').innerText = (p.wake_word || 'SANA').toUpperCase();
         if (document.getElementById('quick-whisper-model')) document.getElementById('quick-whisper-model').innerText = p.whisper_model || 'small.en';
@@ -564,7 +579,7 @@
       try {
         const res = await window.pywebview.api.save_profile(data);
         if (res.success) {
-          showToast('Voice preferences saved successfully!');
+          showToast('Preferences saved successfully!');
           if (document.getElementById('header-user-tag')) document.getElementById('header-user-tag').innerText = data.user_name;
           if (document.getElementById('quick-wake-word')) document.getElementById('quick-wake-word').innerText = data.wake_word.toUpperCase();
           if (document.getElementById('quick-whisper-model')) document.getElementById('quick-whisper-model').innerText = data.whisper_model;

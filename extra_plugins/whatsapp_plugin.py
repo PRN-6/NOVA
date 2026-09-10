@@ -1,4 +1,5 @@
 import logging
+import os
 import subprocess
 import time
 import re
@@ -47,9 +48,77 @@ class WhatsAppPlugin(BasePlugin):
     name = "WhatsApp Desktop"
     icon = "💬"
     description = "Control WhatsApp Desktop: launch app, close app, and send messages."
-    version = "1.4.0"
+    version = "1.5.0"
     author = "Community Plugin"
     is_builtin = False
+
+    # ---------- Contacts Storage ---------- #
+    _CONTACTS_PATH = os.path.join(
+        os.getenv("APPDATA", os.path.expanduser("~")), "SANA", "whatsapp_contacts.json"
+    )
+
+    @classmethod
+    def load_contacts(cls) -> List[Dict[str, str]]:
+        """Returns the saved contacts list: [{name, alias, phone}, ...]"""
+        try:
+            if os.path.exists(cls._CONTACTS_PATH):
+                with open(cls._CONTACTS_PATH, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load WhatsApp contacts: {e}")
+        return []
+
+    @classmethod
+    def save_contacts(cls, contacts: List[Dict[str, str]]) -> bool:
+        """Saves the contacts list to disk."""
+        try:
+            os.makedirs(os.path.dirname(cls._CONTACTS_PATH), exist_ok=True)
+            with open(cls._CONTACTS_PATH, "w", encoding="utf-8") as f:
+                json.dump(contacts, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            logger.error(f"Could not save WhatsApp contacts: {e}")
+            return False
+
+    def _resolve_contact(self, spoken_name: str) -> str:
+        """
+        Fuzzy-matches a spoken name against the saved contacts list.
+        Returns the best-matching saved contact name, or the original spoken
+        name if no good match is found (so it still searches WhatsApp normally).
+        """
+        import difflib
+        contacts = self.load_contacts()
+        if not contacts:
+            return spoken_name
+
+        spoken_lower = spoken_name.lower().strip()
+        best_score = 0.0
+        best_name = spoken_name
+
+        for c in contacts:
+            # Check against 'name' and any 'alias' the user set
+            candidates = [c.get("name", "")]
+            alias = c.get("alias", "").strip()
+            if alias:
+                candidates.append(alias)
+
+            for cand in candidates:
+                if not cand:
+                    continue
+                score = difflib.SequenceMatcher(None, spoken_lower, cand.lower()).ratio()
+                # Also check if spoken name is a prefix/substring (catches "prinson" vs "Prinson Kumar")
+                if spoken_lower in cand.lower() or cand.lower().startswith(spoken_lower):
+                    score = max(score, 0.85)
+                if score > best_score:
+                    best_score = score
+                    best_name = c.get("name", spoken_name)  # return the saved display name
+
+        if best_score >= 0.65:
+            logger.info(f"Contact resolved: '{spoken_name}' -> '{best_name}' (score: {best_score:.2f})")
+            return best_name
+        else:
+            logger.info(f"No contact match for '{spoken_name}' (best: '{best_name}' @ {best_score:.2f}). Using spoken name.")
+            return spoken_name
 
     @property
     def actions(self) -> Dict[str, Callable[[str], bool]]:
@@ -109,10 +178,92 @@ class WhatsAppPlugin(BasePlugin):
             "whatsapp.send_message": "- whatsapp.send_message: Send a message or open a chat with a specific person on WhatsApp (e.g. 'send message to mom', 'tell dad I will be late', 'send hi to mom').",
         }
 
+    # Cached at runtime — populated on first launch attempt
+    _resolved_launch_method: Optional[str] = None  # 'uwp', 'exe', 'uri'
+    _resolved_uwp_pfn: Optional[str] = None
+    _resolved_exe_path: Optional[str] = None
+
+    # Common standalone (non-Store) WhatsApp EXE locations
+    _STANDALONE_EXE_GLOBS = [
+        os.path.join(os.getenv("LOCALAPPDATA", ""), "WhatsApp", "WhatsApp.exe"),
+        os.path.join(os.getenv("APPDATA", ""),    "WhatsApp", "WhatsApp.exe"),
+        r"C:\Program Files\WhatsApp\WhatsApp.exe",
+        r"C:\Program Files (x86)\WhatsApp\WhatsApp.exe",
+    ]
+
+    @classmethod
+    def _detect_launch_method(cls):
+        """
+        Auto-detects the best way to launch WhatsApp on this machine.
+        Result is cached so detection only runs once per session.
+        """
+        if cls._resolved_launch_method:
+            return  # already detected
+
+        # 1. Try UWP (Microsoft Store install) — query dynamically via PowerShell
+        try:
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 "Get-AppxPackage -Name '*WhatsApp*' | Select-Object -ExpandProperty PackageFamilyName"],
+                capture_output=True, text=True, timeout=6
+            )
+            pfn = result.stdout.strip().splitlines()[0] if result.stdout.strip() else ""
+            if pfn:
+                cls._resolved_uwp_pfn = pfn
+                cls._resolved_launch_method = "uwp"
+                logger.info(f"WhatsApp detected as UWP app. PFN: {pfn}")
+                return
+        except Exception as e:
+            logger.debug(f"UWP detection failed: {e}")
+
+        # 2. Try common standalone EXE paths
+        for exe_path in cls._STANDALONE_EXE_GLOBS:
+            if os.path.isfile(exe_path):
+                cls._resolved_exe_path = exe_path
+                cls._resolved_launch_method = "exe"
+                logger.info(f"WhatsApp detected as standalone EXE: {exe_path}")
+                return
+
+        # 3. Fall back to URI scheme (registry-based)
+        cls._resolved_launch_method = "uri"
+        logger.warning("WhatsApp: could not detect UWP or EXE install. Falling back to URI scheme.")
+
+    def _launch_whatsapp_exe(self) -> bool:
+        """Launches WhatsApp Desktop using the best available method for this machine."""
+        self._detect_launch_method()
+
+        if self._resolved_launch_method == "uwp":
+            try:
+                subprocess.Popen(
+                    f'explorer.exe "shell:AppsFolder\\{self._resolved_uwp_pfn}!App"',
+                    shell=True
+                )
+                logger.info("WhatsApp launched via UWP shell:AppsFolder")
+                return True
+            except Exception as e:
+                logger.warning(f"UWP launch failed: {e}. Falling back...")
+
+        if self._resolved_launch_method == "exe" and self._resolved_exe_path:
+            try:
+                subprocess.Popen([self._resolved_exe_path])
+                logger.info(f"WhatsApp launched via EXE: {self._resolved_exe_path}")
+                return True
+            except Exception as e:
+                logger.warning(f"EXE launch failed: {e}. Falling back to URI...")
+
+        # Final fallback: URI scheme
+        try:
+            subprocess.Popen("start whatsapp:", shell=True)
+            logger.info("WhatsApp launched via URI scheme")
+            return True
+        except Exception as e:
+            logger.error(f"All WhatsApp launch methods failed: {e}")
+            return False
+
     def open_app(self, text: str) -> bool:
-        logger.info("Plugin Action: Launching WhatsApp")
-        subprocess.Popen("start whatsapp:", shell=True)
-        return True
+        logger.info("Plugin Action: Launching WhatsApp Desktop")
+        return self._launch_whatsapp_exe()
+
 
     def close_app(self, text: str) -> bool:
         logger.info("Plugin Action: Force Closing WhatsApp")
@@ -142,9 +293,8 @@ class WhatsAppPlugin(BasePlugin):
     def _focus_whatsapp(self) -> bool:
         """Launches and brings WhatsApp window to the front without disturbing its geometry."""
         logger.info("Activating WhatsApp Desktop...")
-        # 'start whatsapp:' opens WhatsApp or brings existing instance to the front
-        subprocess.Popen("start whatsapp:", shell=True)
-        time.sleep(1.8)
+        self._launch_whatsapp_exe()
+        time.sleep(2.0)
 
         # If window handle is found, ensure foreground focus
         hwnd = user32.FindWindowW(None, "WhatsApp")
@@ -253,7 +403,9 @@ class WhatsAppPlugin(BasePlugin):
             logger.warning(f"Could not extract contact name from: '{text}'")
             return False
 
-        logger.info(f"WhatsApp target contact: '{contact_name}', message: '{message_body}'")
+        # Resolve spoken name against saved contacts for better accuracy
+        resolved_name = self._resolve_contact(contact_name)
+        logger.info(f"WhatsApp target: spoken='{contact_name}' -> resolved='{resolved_name}', message: '{message_body}'") 
 
         # 1. Launch & focus WhatsApp window
         self._focus_whatsapp()
@@ -262,8 +414,8 @@ class WhatsAppPlugin(BasePlugin):
         trigger_new_chat()
         time.sleep(1.0)
 
-        # 3. Paste contact name and search
-        if not self._set_clipboard(contact_name):
+        # 3. Paste resolved contact name and search
+        if not self._set_clipboard(resolved_name):
             return False
         _press_paste()
         time.sleep(1.8)
@@ -281,6 +433,6 @@ class WhatsAppPlugin(BasePlugin):
             _press_paste()
             time.sleep(0.3)
             trigger_press_enter()
-            logger.info(f"Message sent to '{contact_name}': '{message_body}'")
+            logger.info(f"Message sent to '{resolved_name}': '{message_body}'")
 
         return True

@@ -22,10 +22,52 @@ from speech.vad import SileroVAD
 import queue
 import sounddevice as sd
 import numpy as np
-from typing import Callable
+try:
+    from plugins.profile_manager import profile_manager
+except Exception:
+    profile_manager = None
+
 
 logging.basicConfig(level=logging.INFO , format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("PRIVACY68.SpeechStreamer")
+
+def autocorrect_speech_command(text: str) -> str:
+    """
+    Cleans disfluencies, filler sounds (hmmm, ummm, bmmm, uhhh), hesitations,
+    stutters, and trailing noise from transcribed speech to auto-correct
+    the user's command into a clean, proper statement.
+    """
+    if not text:
+        return ""
+
+    cleaned = text
+
+    # 1. Remove filler sounds, vocal tics, and hesitations (e.g. hmmm, ummm, bmmm, uhhh, ahhh, errr)
+    filler_pattern = r'\b(h+m+|u+m+|u+h+|a+h+|e+r+|b+m+|m+h+m+|m+m+)\b'
+    cleaned = re.sub(filler_pattern, ' ', cleaned, flags=re.IGNORECASE)
+
+    # 2. Remove stuttered consecutive duplicate words (e.g. 'open open' -> 'open', 'the the' -> 'the')
+    cleaned = re.sub(r'\b([a-zA-Z]+)(?:\s+\1\b)+', r'\1', cleaned, flags=re.IGNORECASE)
+
+    # 3. Clean trailing filler prepositions or orphaned conjunctions (e.g. 'search for youtube in' -> 'search for youtube')
+    cleaned = re.sub(r'\s+(in|at|on|for|with|and|to|the|a|of)\s*$', '', cleaned, flags=re.IGNORECASE)
+
+    # 4. Normalize common speech recognition misspellings
+    substitutions = [
+        (r'\byoutub\b|\byou\s*tube\b', 'youtube'),
+        (r'\bwhatsup\b|\bwhat\s*app\b', 'whatsapp'),
+        (r'\bgoogl\b', 'google'),
+        (r'\bbrower\b', 'browser'),
+        (r'\bnotpad\b', 'notepad'),
+        (r'\bchrom\b', 'chrome'),
+    ]
+    for pattern, repl in substitutions:
+        cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
+
+    # 5. Collapse multiple spaces and clean punctuation
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip(".!?, \t\n")
+    return cleaned
+
 
 class SpeechStreamer:
     @staticmethod
@@ -66,28 +108,21 @@ class SpeechStreamer:
         if self.wake_pattern.search(text):
             return True
 
-        # 2. Dynamic Fuzzy Matching on word n-grams (handles arbitrary unique names)
+        # 2. Dynamic Fuzzy Matching for longer custom names (>= 5 chars)
         import difflib
         cleaned_words = [w.strip(".!?, \t\n").lower() for w in text.split()]
         target_wake_words = [w.strip().lower() for w in self.wake_word.replace("/", ",").split(",") if w.strip()]
 
         for target in target_wake_words:
-            # Check single words
+            if len(target) < 5:
+                # For short names like 'Nova', 'Leo', 'Sana', 'Alexa', require exact word match to avoid false triggers
+                continue
             for cw in cleaned_words:
-                if not cw:
+                if len(cw) < 4:
                     continue
                 similarity = difflib.SequenceMatcher(None, target, cw).ratio()
-                if similarity >= 0.82:
+                if similarity >= 0.88:
                     logger.info(f"Fuzzy wake word match: '{cw}' matches '{target}' (Similarity: {similarity:.2f})")
-                    return True
-            
-            # Check 2-word ngrams (e.g. 'bumble bee' for 'bumblebee')
-            target_no_spaces = target.replace(" ", "")
-            for i in range(len(cleaned_words) - 1):
-                bigram = cleaned_words[i] + cleaned_words[i+1]
-                similarity = difflib.SequenceMatcher(None, target_no_spaces, bigram).ratio()
-                if similarity >= 0.82:
-                    logger.info(f"Fuzzy ngram wake word match: '{bigram}' matches '{target}' (Similarity: {similarity:.2f})")
                     return True
 
         return False
@@ -155,6 +190,7 @@ class SpeechStreamer:
         
         self.is_muted = False
         self.audio_queue: queue.Queue = queue.Queue()
+
         self.stream = sd.InputStream(
             samplerate = self.sample_rate,
             channels = config.CHANNELS,
@@ -162,6 +198,15 @@ class SpeechStreamer:
             blocksize = config.BLOCK_SIZE,
             callback = self._audio_callback,
         )
+
+    def set_biometrics_enabled(self, enabled: bool) -> None:
+        pass
+
+    def set_biometric_threshold(self, threshold: float) -> None:
+        pass
+
+    def reload_voiceprint(self) -> bool:
+        return False
 
     def set_muted(self, muted: bool) -> None:
         """Sets the microphone mute state."""
@@ -243,24 +288,82 @@ class SpeechStreamer:
                             # Overlapping window — keep last half for next scan
                             idle_buffer = idle_buffer[IDLE_OVERLAP_CHUNKS:]
 
-                            # Skip transcribing silence in idle mode
-                            if float(np.max(np.abs(idle_audio))) < 0.012:
+                            # ── Energy gate: skip silence and quiet background noise ──
+                            # Raised thresholds to reject speaker bleed-through from
+                            # videos/music playing in the background.
+                            idle_rms  = float(np.sqrt(np.mean(idle_audio**2)))
+                            idle_peak = float(np.max(np.abs(idle_audio)))
+                            if idle_rms < 0.018 or idle_peak < 0.06:
                                 continue
 
-                            segments, _ = self.model.transcribe(
+                            segments, info = self.model.transcribe(
                                 idle_audio,
                                 beam_size=2,
+                                temperature=0.0,
                                 without_timestamps=True,
                                 language='en',
-                                vad_filter=False,
+                                vad_filter=True,
                             )
+
+                            # ── Discard if model is uncertain about speech ──
+                            # Tightened to 0.35 — medium.en is well-calibrated;
+                            # a score above 0.35 almost always means background noise.
+                            if info and getattr(info, "no_speech_prob", 0.0) > 0.35:
+                                continue
+
                             idle_text = " ".join([s.text.strip() for s in segments]).strip()
 
+                            # ── Hallucination artifact filter ──
+                            # Whisper consistently outputs these strings on near-silence
+                            # or non-command background audio. Drop them unconditionally.
+                            IDLE_ARTIFACTS = {
+                                # Silence artifacts
+                                "silence.", "silence", "silence. silence.",
+                                # Thank-you / farewell artifacts
+                                "thank you.", "thank you", "thank you very much.",
+                                "thanks for watching.", "thanks for watching",
+                                "thank you for listening.", "thank you for listening",
+                                "thank you for watching.", "thank you for watching",
+                                "thank you so much.", "thanks.", "thanks",
+                                # Filler artifacts
+                                "mhm.", "mhm", "mm-hmm.", "uh-huh.",
+                                "yeah.", "yeah", "yes.", "yes",
+                                "okay.", "okay", "ok.", "ok",
+                                "right.", "right", "alright.", "alright", "all right.",
+                                "sure.", "sure", "yep.", "yep", "nope.", "nope",
+                                "bye.", "bye", "bye-bye.", "goodbye.",
+                                "congratulations.", "congratulations",
+                                "you", "people.", "people", "never",
+                                "i don't know.", "i don't know", "i don't know.",
+                                "maybe not.", "you know", "never mind.",
+                                "very much", "sort of engineering.",
+                                "little on that", "to think.", "anything.",
+                                "done with an indicator.", "they learned with",
+                                "you know they love you.", "i'm gonna teach you.",
+                                "all right, we found.", "bye, everybody.",
+                            }
+                            if idle_text.lower().strip(".!?, ") in {a.strip(".!?, ") for a in IDLE_ARTIFACTS}:
+                                continue
+
                             if idle_text:
-                                logger.debug(f"Idle scan heard: '{idle_text}'")
+                                logger.info(f"Idle scan heard: '{idle_text}'")
+
+                            # Dynamically sync wake word from profile_manager
+                            try:
+                                if profile_manager:
+                                    p_wake = profile_manager.get("wake_word")
+                                    if p_wake and p_wake.strip().lower() != self.wake_word.lower():
+                                        self.set_wake_word(p_wake)
+                            except Exception:
+                                pass
 
                             # Check if user said the custom wake word (ANY unique name)
-                            if self.is_wake_word_detected(idle_text):
+                            # CRITICAL: The wake word must be in the FIRST 3 words.
+                            # Background audio (videos/podcasts) may contain the wake word
+                            # mid-sentence (e.g. "...and alexa said..."). A real command
+                            # ALWAYS starts with the wake word.
+                            first_words = " ".join(idle_text.split()[:3])
+                            if self.is_wake_word_detected(idle_text) and self.is_wake_word_detected(first_words):
                                 logger.info(f"Wake word '{self.wake_word}' matched in: '{idle_text}'")
 
                                 if on_wake_word_callback:
@@ -274,11 +377,17 @@ class SpeechStreamer:
                                     except Exception:
                                         pass
 
-                                # Check if the wake word was a one-shot command
-                                # e.g. "Hey Zephyr open notepad" — strip wake phrase and execute directly
+                                # Check if the wake word contained a full multi-word inline command
+                                # e.g. "Alexa open chrome and search for youtube" — require at least 2 distinct words
                                 inline_command = self.strip_wake_word(idle_text)
-                                if inline_command:
-                                    logger.info(f"Inline command detected: '{inline_command}'")
+                                inline_command = autocorrect_speech_command(inline_command)
+                                
+                                KNOWN_NON_COMMANDS = {
+                                    "alexa", "nova", "sana", "privacy68", "jarvis", "friday", "leo", "serena",
+                                    "hey alexa", "hey nova", "hey sana", "yes", "yeah", "okay", "hi", "hello", "thank you"
+                                }
+                                if inline_command and len(inline_command.split()) >= 2 and inline_command.lower() not in KNOWN_NON_COMMANDS:
+                                    logger.info(f"Inline multi-word command detected: '{inline_command}'")
                                     on_text_callback(inline_command)
                                     if on_sleep_callback:
                                         on_sleep_callback()
@@ -286,12 +395,16 @@ class SpeechStreamer:
                                         self.audio_queue.queue.clear()
                                     continue
 
-                                # No inline command — activate full listening mode
+                                # No inline command — activate full listening mode and wait for complete command
+                                logger.info(f"Activated listening mode. Waiting for command...")
                                 self.is_active = True
                                 self.vad.reset()
                                 has_spoken = False
+                                speech_chunks = 0
                                 silence_counter = 0
                                 audio_buffer.clear()
+                                with self.audio_queue.mutex:
+                                    self.audio_queue.queue.clear()
                         continue
 
                     # 2. Active state: Record voice command
@@ -305,17 +418,19 @@ class SpeechStreamer:
                     is_voice = self.vad.is_speech(chunk)
 
                     if is_voice:
-                        has_spoken = True
-                        silence_counter = 0
+                        speech_chunks += 1
+                        if speech_chunks >= 3:  # Require at least ~240ms of speech before marking as active speaking
+                            has_spoken = True
+                            silence_counter = 0
                     else:
                         if has_spoken:
                             silence_counter += 1
 
-                    # Check timeout if user never spoke after wake word
+                    # Check timeout if user never spoke after wake word (give full 7.0 seconds to start speaking)
                     total_chunks = len(audio_buffer)
-                    timeout_chunks = int(self.sample_rate * 5.0 / config.BLOCK_SIZE)
+                    timeout_chunks = int(self.sample_rate * 7.0 / config.BLOCK_SIZE)
                     if not has_spoken and total_chunks >= timeout_chunks:
-                        logger.info("No speech detected after wake word. Returning to sleep.")
+                        logger.info("No command spoken after wake word. Returning to sleep.")
                         audio_buffer.clear()
                         self.vad.reset()
                         self.is_active = False
@@ -325,12 +440,11 @@ class SpeechStreamer:
                             self.audio_queue.queue.clear()
                         continue
 
-                    # Process command when speech finishes (silence detected) or max duration reached (8s)
-                    max_chunks = int(self.sample_rate * 8.0 / config.BLOCK_SIZE)
-                    # Require minimum silence pause of ~1.0s after speech before finalizing
-                    silence_cutoff = max(self.silence_duration_chunks, 12)  # ~1.0 second
+                    # Process command when speech finishes (allow ~1.8s silence pause) or max duration reached (14s)
+                    max_chunks = int(self.sample_rate * 14.0 / config.BLOCK_SIZE)
+                    silence_cutoff = max(self.silence_duration_chunks, 22)  # ~1.76 seconds of pause to allow thinking/long commands
                     if (has_spoken and silence_counter >= silence_cutoff) or (has_spoken and total_chunks >= max_chunks):
-                        logger.info("Processing speech command...")
+                        logger.info("Speech finished. Processing complete command...")
                         full_audio = np.concatenate(audio_buffer).flatten()
 
                         # ── Anti-hallucination gate 1: RMS Energy & Peak Check ──
@@ -338,7 +452,7 @@ class SpeechStreamer:
                         max_peak = float(np.max(np.abs(full_audio)))
                         
                         if rms < 0.004 or max_peak < 0.01:
-                            logger.info(f"Audio energy too low (RMS: {rms:.4f}, Peak: {max_peak:.4f}). Ignoring background noise.")
+                            logger.info(f"Audio energy too low (RMS: {rms:.4f}, Peak: {max_peak:.4f}). Discarding.")
                             audio_buffer.clear()
                             self.vad.reset()
                             self.is_active = False
@@ -365,7 +479,9 @@ class SpeechStreamer:
                         )
 
                         # ── Anti-hallucination gate 2: no_speech_prob check ──
-                        if info and getattr(info, "no_speech_prob", 0.0) > 0.65:
+                        # medium.en is more calibrated — 0.45 discards more noise without
+                        # losing real quiet speech (was 0.65, too lenient).
+                        if info and getattr(info, "no_speech_prob", 0.0) > 0.45:
                             logger.info(f"Whisper flagged segment as non-speech (no_speech_prob={info.no_speech_prob:.2f}). Discarding.")
                             text = ""
                         else:
@@ -380,11 +496,31 @@ class SpeechStreamer:
                             logger.info(f"Filtered out hallucination artifact '{text}' on low-energy audio.")
                             text = ""
 
+                        # ── Strip Wake Word Prefix if repeated in command audio ──
                         if text:
-                            logger.info(f"Transcribed: '{text}'")
+                            text = self.strip_wake_word(text)
+
+                        # ── Auto-Correct & Clean Disfluencies (hmmm, bmmm, ummm, stutters) ──
+                        if text:
+                            raw_transcription = text
+                            text = autocorrect_speech_command(raw_transcription)
+                            if text != raw_transcription:
+                                logger.info(f"Speech Auto-Corrected: '{raw_transcription}' -> '{text}'")
+
+                        # ── Filter Out Standalone Wake Words / Empty Utterances ──
+                        KNOWN_NON_COMMANDS = {
+                            "alexa", "nova", "sana", "privacy68", "jarvis", "friday", "leo", "serena",
+                            "hey alexa", "hey nova", "hey sana", "yes", "yeah", "okay", "hi", "hello"
+                        }
+                        if text.lower().strip(".!?, ") in KNOWN_NON_COMMANDS or len(text.strip()) <= 2:
+                            logger.info(f"Ignored standalone wake word utterance: '{text}' (no command given)")
+                            text = ""
+
+                        if text:
+                            logger.info(f"Executing Transcribed Command: '{text}'")
                             on_text_callback(text)
                         else:
-                            logger.info("Could not recognize any speech.")
+                            logger.info("No actionable command detected.")
                         
                         # Return to sleep mode to avoid unwanted inputs
                         if on_sleep_callback:
@@ -393,6 +529,7 @@ class SpeechStreamer:
                         # Reset state
                         audio_buffer.clear()
                         self.vad.reset()
+                        speech_chunks = 0
                         silence_counter = 0
                         has_spoken = False
                         self.is_active = False

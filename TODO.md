@@ -19,11 +19,11 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 - [ ] **Custom User Wake-Word & Activation Phrases**
   - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Sana"*, *"Friday"*) via UI settings or config.
   - Support custom regex patterns, phonetic alias expansion, and configurable sensitivity for user-defined awake call commands.
-- [ ] **Speaker Recognition & Voice Biometrics (Owner-Only Voice Lock)**
-  - Integrate a speaker verification model (e.g., `Resemblyzer`, `Sherpa-ONNX`, or `SpeechBrain ECAPA-TDNN`) to ensure SANA only responds to the primary user's voice.
-  - **Voice Enrollment**: One-time setup script/UI wizard to capture 3–5 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/SANA/`).
+- [x] **Speaker Recognition & Voice Biometrics (Owner-Only Voice Lock)**
+  - Integrate a speaker verification model (`CAM++ Neural ONNX` / `VoxCeleb`) to ensure SANA only responds to the primary user's voice.
+  - **Voice Enrollment**: Setup script (`speech/enroll.py`) & Dashboard UI wizard to capture 3 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/PRIVACY68/`).
   - **Real-Time Verification**: Extract acoustic embeddings from captured speech audio and compute cosine similarity against the owner's voiceprint before executing commands.
-  - **Rejection of Unauthorized Voices**: Silently drop or log non-matching voices (family, friends, TV/YouTube background chatter) below similarity threshold (e.g., `< 0.75`).
+  - **Rejection of Unauthorized Voices**: Silently drop or log non-matching voices (family, friends, TV/YouTube background chatter) below similarity threshold (default `0.62`).
 
 
 ---

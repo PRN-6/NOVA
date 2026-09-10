@@ -17,9 +17,10 @@ DEFAULT_PROFILE = {
     "wake_word": "privacy68",
     "wake_threshold": 0.50,
     "whisper_device": "cuda",
-    "whisper_model": "small.en",
+    "whisper_model": "medium.en",
     "hud_enabled": True,
-    "theme": "obsidian_red"
+    "theme": "obsidian_red",
+    "biometrics_enabled": False
 }
 
 class ProfileManager:
