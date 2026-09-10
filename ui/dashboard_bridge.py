@@ -12,7 +12,7 @@ import numpy as np
 from plugins.manager import plugin_manager
 from plugins.profile_manager import profile_manager
 
-logger = logging.getLogger("SANA.DashboardBridge")
+logger = logging.getLogger("PRIVACY68.DashboardBridge")
 
 class DashboardAPI:
     """
@@ -136,8 +136,8 @@ class DashboardAPI:
             root.withdraw()
             root.attributes("-topmost", True)
             file_path = filedialog.askopenfilename(
-                title="Select SANA Plugin File",
-                filetypes=[("SANA Plugin Files", "*.py *.zip"), ("Python Files", "*.py"), ("All Files", "*.*")]
+                title="Select PRIVACY68 Plugin File",
+                filetypes=[("PRIVACY68 Plugin Files", "*.py *.zip"), ("Python Files", "*.py"), ("All Files", "*.*")]
             )
             root.destroy()
             return file_path or ""

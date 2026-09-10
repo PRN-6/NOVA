@@ -50,6 +50,10 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
   - Use `psutil` to query battery and hardware stats.
 - [ ] **Windows Window Management**
   - Commands: *"Minimize all windows"*, *"Snap window to left/right"*, *"Switch to next desktop"*, *"Lock computer"*.
+- [ ] **Virtual Desktop & Multi-Monitor Workspace Automation (`virtual_desktop_plugin.py`)**
+  - Commands: *"Open Chrome in Desktop 2 and search for YouTube"*, *"Move active window to Desktop 2"*, *"Open Spotify on Monitor 2 in background"*.
+  - Integrate `pyvda` (Python Virtual Desktop Accessor) to move launched app windows to target Virtual Desktops (e.g., Desktop 2/3) silently without switching the user's active screen.
+  - Multi-monitor support: Use Win32 API (`SetWindowPos` with `SWP_NOACTIVATE`) to launch windows onto secondary monitors without stealing window focus.
 
 ### 📝 Productivity & Office
 - [ ] **Notepad / Quick Notes Plugin (`notepad_plugin.py`)**

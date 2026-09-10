@@ -3,7 +3,7 @@ import ollama
 from actions.skill_manager import manager
 from actions.router import SemanticRouter
 
-logger = logging.getLogger("SANA.ActionExecutor")
+logger = logging.getLogger("PRIVACY68.ActionExecutor")
 fast_router = SemanticRouter()
 
 def preload_ai_model():
@@ -50,7 +50,7 @@ def execute_system_command_detailed(text: str, on_action_callback = None) -> dic
     available_tools = manager.get_system_prompt_descriptions()
     
     system_prompt = (
-        "You are the brain of SANA, a desktop assistant.\n"
+        "You are the brain of PRIVACY68, a desktop assistant.\n"
         "You must select the most appropriate tool to run based on the user's request.\n"
         "Available tools:\n"
         f"{available_tools}\n\n"

@@ -1,7 +1,7 @@
 @echo off
-title NOVA EXE Builder
+title PRIVACY68 EXE Builder
 echo ===================================================
-echo             Building Standalone NOVA.exe           
+echo           Building Standalone PRIVACY68.exe        
 echo ===================================================
 .\.venv\Scripts\python.exe build_exe.py
 pause

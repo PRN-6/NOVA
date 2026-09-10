@@ -99,7 +99,7 @@ class SanaRemoteHandler(SimpleHTTPRequestHandler):
             local_ip = get_local_ip()
             self._send_json({
                 "status": "online",
-                "app": "SANA",
+                "app": "PRIVACY68",
                 "version": "1.0.0",
                 "pc_name": socket.gethostname(),
                 "local_ip": local_ip,

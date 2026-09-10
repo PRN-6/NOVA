@@ -5,11 +5,11 @@ import subprocess
 import tkinter as tk
 from tkinter import messagebox
 
-logger = logging.getLogger("SANA.DashboardWindow")
+logger = logging.getLogger("PRIVACY68.DashboardWindow")
 
 class PluginManagerWindow:
     """
-    SANA Control Center & Plugin Hub:
+    PRIVACY68 Control Center & Plugin Hub:
     Launches the modern Tailwind CSS / WebView2 desktop dashboard interface.
     Provides graceful fallback notification if WebView2 runtime is unavailable.
     """
@@ -40,6 +40,6 @@ class PluginManagerWindow:
         except Exception as e:
             logger.warning(f"Could not launch WebView2 dashboard: {e}")
             messagebox.showerror(
-                "SANA Control Center",
+                "PRIVACY68 Control Center",
                 f"Could not open Control Center Dashboard:\n{e}\n\nPlease verify WebView2 / pywebview is installed."
             )

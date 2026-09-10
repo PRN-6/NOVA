@@ -46,7 +46,7 @@ def run_dashboard():
     )
     api.set_window(window)
 
-    logger.info(f"Opening SANA Tailwind Control Center via WebView2 ({html_path})...")
+    logger.info(f"Opening PRIVACY68 Tailwind Control Center via WebView2 ({html_path})...")
     webview.start(debug=False)
 
 if __name__ == "__main__":

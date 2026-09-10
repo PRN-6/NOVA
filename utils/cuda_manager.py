@@ -10,10 +10,10 @@ import json
 import subprocess
 from typing import Dict, Any, List, Optional, Callable
 
-logger = logging.getLogger("SANA.CUDAManager")
+logger = logging.getLogger("PRIVACY68.CUDAManager")
 
 # User AppData directory for persistent external CUDA runtime storage
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "PRIVACY68")
 APPDATA_CUDA_DIR = os.path.join(APPDATA_DIR, "cuda")
 APPDATA_CUDA_BIN = os.path.join(APPDATA_CUDA_DIR, "bin")
 

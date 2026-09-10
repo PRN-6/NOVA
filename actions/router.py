@@ -4,7 +4,7 @@ import numpy as np
 from actions.skill_manager import manager
 from plugins.manager import plugin_manager
 
-logger = logging.getLogger("SANA.SemanticRouter")
+logger = logging.getLogger("PRIVACY68.SemanticRouter")
 
 class SimpleTfidfVectorizer:
     """

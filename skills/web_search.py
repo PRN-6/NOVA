@@ -5,7 +5,7 @@ import urllib.parse
 import webbrowser
 from skills.base_skill import BaseSkill
 
-logger = logging.getLogger("SANA.WebSearchSkill")
+logger = logging.getLogger("PRIVACY68.WebSearchSkill")
 
 class WebSearch(BaseSkill):
 

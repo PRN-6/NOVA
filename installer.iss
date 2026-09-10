@@ -1,14 +1,14 @@
 ; ─────────────────────────────────────────────────────────────────────────────
-; NOVA Assistant - Inno Setup Installer Script
+; PRIVACY68 Assistant - Inno Setup Installer Script
 ; Build Command: Open this file in Inno Setup Compiler and click Build → Compile
-; Output: installer/NOVA-Setup-v1.1.0.exe
+; Output: installer/PRIVACY68-Setup-v1.1.0.exe
 ; ─────────────────────────────────────────────────────────────────────────────
 
-#define MyAppName "NOVA"
+#define MyAppName "PRIVACY68"
 #define MyAppVersion "1.1.0"
-#define MyAppPublisher "NOVA Team"
-#define MyAppURL "https://github.com/PRN-6/NOVA"
-#define MyAppExeName "NOVA.exe"
+#define MyAppPublisher "PRIVACY68 Team"
+#define MyAppURL "https://github.com/PRN-6/PRIVACY68"
+#define MyAppExeName "PRIVACY68.exe"
 #define MyAppDescription "AI-Powered Local Voice Assistant for Windows"
 
 [Setup]
@@ -30,7 +30,7 @@ DisableProgramGroupPage=yes
 
 ; Output setup exe location
 OutputDir=installer
-OutputBaseFilename=NOVA-Setup-v{#MyAppVersion}
+OutputBaseFilename=PRIVACY68-Setup-v{#MyAppVersion}
 
 ; Compression
 Compression=lzma2/ultra64
@@ -62,12 +62,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 ; Optional: Create Desktop shortcut
 Name: "desktopicon"; Description: "Create a &Desktop shortcut"; GroupDescription: "Additional shortcuts:"
 ; Optional: Launch on Windows startup
-Name: "startup"; Description: "Launch &NOVA automatically on Windows startup"; GroupDescription: "Startup:"
+Name: "startup"; Description: "Launch &PRIVACY68 automatically on Windows startup"; GroupDescription: "Startup:"
 
 ; ─────────────────────────────────────────────────────────────────────────────
 [Files]
-; Copy the entire compiled dist/NOVA folder into the install directory
-Source: "dist\NOVA\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Copy the entire compiled dist/PRIVACY68 folder into the install directory
+Source: "dist\PRIVACY68\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; ─────────────────────────────────────────────────────────────────────────────
 [Icons]
@@ -85,12 +85,12 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 ; ─────────────────────────────────────────────────────────────────────────────
 [Run]
-; Launch NOVA after clicking Finish
+; Launch PRIVACY68 after clicking Finish
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName} now"; Flags: nowait postinstall skipifsilent
 
 ; ─────────────────────────────────────────────────────────────────────────────
 [UninstallRun]
-; Kill NOVA process before uninstalling
+; Kill PRIVACY68 process before uninstalling
 Filename: "taskkill"; Parameters: "/F /IM ""{#MyAppExeName}"""; Flags: runhidden
 
 ; ─────────────────────────────────────────────────────────────────────────────
@@ -99,4 +99,4 @@ Filename: "taskkill"; Parameters: "/F /IM ""{#MyAppExeName}"""; Flags: runhidden
 WelcomeLabel1=Welcome to {#MyAppName} Setup
 WelcomeLabel2=This wizard will install {#MyAppName} v{#MyAppVersion} — an ultra-fast, 100%% private AI voice assistant for Windows.%n%nClick Next to continue.
 FinishedHeadingLabel=Setup Complete — {#MyAppName} is Ready!
-FinishedLabel={#MyAppName} has been installed on your PC.%n%nSay "Nova" to wake it up and speak your command.%n%nClick Finish to exit Setup.
+FinishedLabel={#MyAppName} has been installed on your PC.%n%nSay "Sana" or "Privacy68" to wake it up and speak your command.%n%nClick Finish to exit Setup.
