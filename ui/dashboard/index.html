@@ -450,6 +450,113 @@
                 <option value="small.en" selected>small.en (High Accuracy ~460MB — Recommended)</option>
               </select>
             </div>
+          <!-- Voice Lock (Biometric Speaker Recognition) Card -->
+          <div class="col-span-1 md:col-span-2 p-6 rounded-2xl bg-nova-card border border-nova-border space-y-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center">
+                  <i data-lucide="fingerprint" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <h3 class="text-sm font-bold text-white">Voice Lock (Biometric Speaker Verification)</h3>
+                    <span id="vl-enrolled-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 font-semibold border border-slate-500/30">Not Enrolled</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Powered by SpeechBrain ECAPA-TDNN neural voice embeddings (192-d)</p>
+                </div>
+              </div>
+
+              <!-- Master Toggle Switch -->
+              <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="voice_lock_toggle" onchange="onToggleVoiceLock(this.checked)" class="sr-only peer">
+                <div class="w-11 h-6 bg-nova-surface peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 border border-nova-border"></div>
+              </label>
+            </div>
+
+            <!-- Enrollment & Status Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+              
+              <!-- Left: 3-Step Enrollment Wizard -->
+              <div class="p-4 rounded-xl bg-nova-surface/60 border border-nova-border/60 space-y-3.5 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center space-x-1.5">
+                      <i data-lucide="mic" class="w-3.5 h-3.5 text-indigo-400"></i>
+                      <span>Voice Enrollment Wizard</span>
+                    </span>
+                    <span id="vl-sample-count-text" class="text-[11px] font-mono text-indigo-300 font-semibold">0 / 3 Samples</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1">
+                    Record 3 short phrases (e.g. <em>"Alexa, authenticate my voice"</em>) to build your master voice profile.
+                  </p>
+                </div>
+
+                <!-- 3 Step progress dots -->
+                <div class="flex items-center space-x-2 py-1">
+                  <div id="dot-sample-1" class="flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border transition-all"></div>
+                  <div id="dot-sample-2" class="flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border transition-all"></div>
+                  <div id="dot-sample-3" class="flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border transition-all"></div>
+                </div>
+
+                <!-- Record / Action buttons -->
+                <div class="flex items-center space-x-2">
+                  <button id="vl-record-btn" onclick="recordEnrollmentSample()" type="button"
+                    class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-2">
+                    <i data-lucide="radio" class="w-3.5 h-3.5"></i>
+                    <span id="vl-record-btn-text">Record Sample 1</span>
+                  </button>
+                  <button onclick="resetVoiceLock()" type="button" title="Reset voice profile"
+                    class="p-2.5 rounded-xl bg-nova-surface hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-nova-border transition-all">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Right: Live Test & Sensitivity -->
+              <div class="p-4 rounded-xl bg-nova-surface/60 border border-nova-border/60 space-y-3.5 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center space-x-1.5">
+                      <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                      <span>Live Voice Match Verification</span>
+                    </span>
+                    <button onclick="testVoiceMatch()" id="vl-test-btn" type="button"
+                      class="px-2.5 py-1 rounded-lg bg-nova-surface2 hover:bg-nova-border text-[11px] font-semibold text-slate-300 hover:text-white border border-nova-border transition-all flex items-center space-x-1">
+                      <i data-lucide="play" class="w-3 h-3 text-emerald-400"></i>
+                      <span>Test Match</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Live match gauge -->
+                  <div class="mt-2 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]">
+                      <span id="vl-test-status" class="text-slate-400">Click 'Test Match' and speak</span>
+                      <span id="vl-test-score" class="font-mono font-bold text-slate-300">--%</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-nova-surface2 overflow-hidden border border-nova-border">
+                      <div id="vl-test-meter" class="h-full w-0 bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-500"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sensitivity cutoff slider -->
+                <div class="space-y-1.5 pt-2 border-t border-nova-border/40">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-[11px] font-semibold text-slate-300">Speaker Match Threshold</span>
+                    <span id="vl-thresh-val" class="font-mono text-indigo-400 font-bold">0.70</span>
+                  </div>
+                  <input type="range" id="vl_threshold_slider" min="0.50" max="0.90" step="0.05" value="0.70"
+                    oninput="onThresholdSliderChange(this.value)"
+                    class="w-full accent-indigo-500 bg-nova-surface rounded-lg cursor-pointer">
+                  <div class="flex justify-between text-[10px] text-slate-500">
+                    <span>Lenient (0.50)</span>
+                    <span class="text-indigo-400/80 font-medium">Recommended (0.70)</span>
+                    <span>Strict (0.90)</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
           <!-- Save & Apply Changes Action Bar -->
@@ -560,8 +667,180 @@
         if (document.getElementById('header-user-tag')) document.getElementById('header-user-tag').innerText = p.user_name || 'User';
         if (document.getElementById('quick-wake-word')) document.getElementById('quick-wake-word').innerText = (p.wake_word || 'SANA').toUpperCase();
         if (document.getElementById('quick-whisper-model')) document.getElementById('quick-whisper-model').innerText = p.whisper_model || 'small.en';
+
+        // Load Voice Lock Status
+        loadVoiceLockStatus();
       } catch (err) {
         console.error('Failed to load profile:', err);
+      }
+    }
+
+    // ===== Voice Lock Biometrics Logic =====
+    async function loadVoiceLockStatus() {
+      if (!window.pywebview || !window.pywebview.api) return;
+      try {
+        const status = await window.pywebview.api.get_voice_lock_status();
+        if (!status) return;
+
+        const toggle = document.getElementById('voice_lock_toggle');
+        if (toggle) toggle.checked = !!status.enabled;
+
+        const badge = document.getElementById('vl-enrolled-badge');
+        if (badge) {
+          if (status.is_enrolled) {
+            badge.innerText = `Enrolled (${status.owner_name || 'Owner'})`;
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30';
+          } else {
+            badge.innerText = 'Not Enrolled';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 font-semibold border border-slate-500/30';
+          }
+        }
+
+        const slider = document.getElementById('vl_threshold_slider');
+        if (slider && status.threshold) {
+          slider.value = status.threshold;
+          document.getElementById('vl-thresh-val').innerText = parseFloat(status.threshold).toFixed(2);
+        }
+
+        updateEnrollmentDots(status.temp_samples_count || (status.is_enrolled ? 3 : 0));
+      } catch (err) {
+        console.error('Error loading voice lock status:', err);
+      }
+    }
+
+    function updateEnrollmentDots(count) {
+      const dot1 = document.getElementById('dot-sample-1');
+      const dot2 = document.getElementById('dot-sample-2');
+      const dot3 = document.getElementById('dot-sample-3');
+      const text = document.getElementById('vl-sample-count-text');
+      const btnText = document.getElementById('vl-record-btn-text');
+
+      if (!dot1) return;
+
+      dot1.className = count >= 1 ? 'flex-1 h-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50' : 'flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border';
+      dot2.className = count >= 2 ? 'flex-1 h-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50' : 'flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border';
+      dot3.className = count >= 3 ? 'flex-1 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'flex-1 h-2 rounded-full bg-nova-surface2 border border-nova-border';
+
+      if (text) text.innerText = `${count} / 3 Samples`;
+      if (btnText) {
+        if (count === 0) btnText.innerText = 'Record Sample 1';
+        else if (count === 1) btnText.innerText = 'Record Sample 2';
+        else if (count === 2) btnText.innerText = 'Record Sample 3';
+        else btnText.innerText = 'Re-Record Samples';
+      }
+    }
+
+    async function onToggleVoiceLock(enabled) {
+      if (!window.pywebview || !window.pywebview.api) return;
+      try {
+        const res = await window.pywebview.api.toggle_voice_lock(enabled);
+        if (res.success) {
+          showToast(`Voice Lock ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        } else {
+          showToast(res.message || 'Failed to toggle Voice Lock', true);
+        }
+      } catch (err) {
+        showToast(err.toString(), true);
+      }
+    }
+
+    async function onThresholdSliderChange(val) {
+      document.getElementById('vl-thresh-val').innerText = parseFloat(val).toFixed(2);
+      if (!window.pywebview || !window.pywebview.api) return;
+      try {
+        await window.pywebview.api.set_voice_lock_threshold(parseFloat(val));
+      } catch (err) {
+        console.error('Failed to set threshold:', err);
+      }
+    }
+
+    async function recordEnrollmentSample() {
+      if (!window.pywebview || !window.pywebview.api) return;
+      const btn = document.getElementById('vl-record-btn');
+      const btnText = document.getElementById('vl-record-btn-text');
+
+      btn.disabled = true;
+      btn.classList.add('animate-pulse', 'bg-red-600');
+      btnText.innerText = '🎙️ Speaking... (3s)';
+
+      try {
+        const res = await window.pywebview.api.record_voice_enrollment_sample();
+        if (res.success) {
+          updateEnrollmentDots(res.count);
+          showToast(`Sample ${res.count}/3 recorded!`);
+          if (res.count >= 3) {
+            btnText.innerText = 'Saving Profile...';
+            const saveRes = await window.pywebview.api.finalize_voice_enrollment();
+            if (saveRes.success) {
+              showToast('🎉 Voice Lock Profile Active!');
+              loadVoiceLockStatus();
+            } else {
+              showToast(saveRes.message || 'Could not save profile', true);
+            }
+          }
+        } else {
+          showToast(res.message || 'Recording failed', true);
+        }
+      } catch (err) {
+        showToast(err.toString(), true);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('animate-pulse', 'bg-red-600');
+        loadVoiceLockStatus();
+      }
+    }
+
+    async function resetVoiceLock() {
+      if (!confirm('Are you sure you want to reset and delete your enrolled voice profile?')) return;
+      if (!window.pywebview || !window.pywebview.api) return;
+      try {
+        const res = await window.pywebview.api.reset_voice_enrollment();
+        if (res.success) {
+          showToast('Voice profile deleted.');
+          loadVoiceLockStatus();
+        }
+      } catch (err) {
+        showToast(err.toString(), true);
+      }
+    }
+
+    async function testVoiceMatch() {
+      if (!window.pywebview || !window.pywebview.api) return;
+      const testBtn = document.getElementById('vl-test-btn');
+      const statusEl = document.getElementById('vl-test-status');
+      const scoreEl = document.getElementById('vl-test-score');
+      const meter = document.getElementById('vl-test-meter');
+
+      testBtn.disabled = true;
+      statusEl.innerText = '🎙️ Listening... speak now';
+      statusEl.className = 'text-indigo-400 font-semibold animate-pulse';
+      meter.style.width = '30%';
+
+      try {
+        const res = await window.pywebview.api.test_voice_match();
+        if (res.success) {
+          const pct = Math.max(0, Math.min(100, Math.round(res.score * 100)));
+          meter.style.width = pct + '%';
+          scoreEl.innerText = pct + '%';
+
+          if (res.is_match) {
+            statusEl.innerText = '✅ Match: Owner Verified';
+            statusEl.className = 'text-emerald-400 font-semibold';
+            meter.className = 'h-full bg-emerald-500 transition-all duration-500';
+          } else {
+            statusEl.innerText = '❌ No Match: Access Denied';
+            statusEl.className = 'text-rose-400 font-semibold';
+            meter.className = 'h-full bg-rose-500 transition-all duration-500';
+          }
+        } else {
+          statusEl.innerText = res.message || 'Test failed';
+          statusEl.className = 'text-slate-400';
+          meter.style.width = '0%';
+        }
+      } catch (err) {
+        statusEl.innerText = 'Error: ' + err.toString();
+      } finally {
+        testBtn.disabled = false;
       }
     }
 
@@ -620,11 +899,11 @@
           <div class="p-5 rounded-2xl bg-nova-card border border-nova-border hover:border-nova-borderHover transition-all flex flex-col justify-between space-y-4">
             <div class="space-y-2.5">
               <div class="flex items-start justify-between">
-                <div class="flex items-center space-x-3">
-                  <span class="text-2xl">${p.icon || '🔌'}</span>
+                <div class="flex items-center space-x-3 ${p.id === 'ppt' || p.id === 'whatsapp' ? 'cursor-pointer group/title' : ''}" onclick="${p.id === 'ppt' ? 'openPPTCommands()' : (p.id === 'whatsapp' ? 'openWhatsAppContacts()' : '')}">
+                  <span class="text-2xl group-hover/title:scale-110 transition-transform">${p.icon || '🔌'}</span>
                   <div>
                     <div class="flex items-center space-x-2">
-                      <h4 class="font-bold text-sm text-white">${p.name}</h4>
+                      <h4 class="font-bold text-sm text-white group-hover/title:text-orange-300 transition-colors">${p.name}</h4>
                       <span class="text-[10px] font-mono text-slate-500">v${p.version || '1.0'}</span>
                       <span class="text-[10px] px-1.5 py-0.2 rounded border font-medium ${badgeClass}">${badgeText}</span>
                     </div>
@@ -653,11 +932,25 @@
               <span class="text-[11px] ${p.is_enabled ? 'text-emerald-400' : 'text-slate-500'} font-medium">
                 ${p.is_enabled ? '● Active & Listening' : '○ Disabled'}
               </span>
-              ${!isBuiltin ? `
-                <button onclick="uninstallPlugin('${p.id}', '${p.name}')" class="text-slate-400 hover:text-rose-400 transition-colors p-1 rounded-md hover:bg-nova-surface2" title="Uninstall plugin">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              ` : ''}
+              <div class="flex items-center space-x-1">
+                ${p.id === 'ppt' ? `
+                  <button onclick="openPPTCommands()" class="flex items-center space-x-1 text-[11px] px-2 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 transition-all shadow-sm" title="View All PowerPoint Voice Commands">
+                    <i data-lucide="help-circle" class="w-3 h-3"></i>
+                    <span>Commands</span>
+                  </button>
+                ` : ''}
+                ${p.id === 'whatsapp' ? `
+                  <button onclick="openWhatsAppContacts()" class="flex items-center space-x-1 text-[11px] px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all" title="Manage Contacts">
+                    <i data-lucide="users" class="w-3 h-3"></i>
+                    <span>Contacts</span>
+                  </button>
+                ` : ''}
+                ${!isBuiltin ? `
+                  <button onclick="uninstallPlugin('${p.id}', '${p.name}')" class="text-slate-400 hover:text-rose-400 transition-colors p-1 rounded-md hover:bg-nova-surface2" title="Uninstall plugin">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                ` : ''}
+              </div>
             </div>
           </div>
         `;
@@ -985,6 +1278,231 @@
       }
     }
 
+    // =============================================
+    // WhatsApp Contacts Manager
+    // =============================================
+    let waContacts = [];
+
+    async function openWhatsAppContacts() {
+      // Load contacts from Python backend
+      if (window.pywebview && window.pywebview.api) {
+        try {
+          waContacts = await window.pywebview.api.get_whatsapp_contacts() || [];
+        } catch(e) {
+          waContacts = [];
+        }
+      }
+      renderWAContacts();
+      document.getElementById('wa-contacts-modal').classList.remove('hidden');
+    }
+
+    function closeWhatsAppContacts() {
+      document.getElementById('wa-contacts-modal').classList.add('hidden');
+    }
+
+    function renderWAContacts() {
+      const list = document.getElementById('wa-contacts-list');
+      if (!waContacts || waContacts.length === 0) {
+        list.innerHTML = `
+          <div class="py-10 text-center text-slate-500">
+            <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
+            <p class="text-xs">No contacts saved yet.</p>
+            <p class="text-[11px] mt-1 text-slate-600">Add contacts below so the assistant can find them by voice.</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+      list.innerHTML = waContacts.map((c, i) => `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-nova-surface border border-nova-border/60 group">
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <span class="text-emerald-400 text-sm font-bold">${(c.name||'?')[0].toUpperCase()}</span>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white truncate">${c.name || '—'}</p>
+              <p class="text-[11px] text-slate-500 truncate">
+                ${c.alias ? '<span class="text-cyan-400/80">Voice alias: &quot;' + c.alias + '&quot;</span>' : 'No voice alias'}
+                ${c.phone ? ' · ' + c.phone : ''}
+              </p>
+            </div>
+          </div>
+          <button onclick="deleteWAContact(${i})" class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-500 hover:text-rose-400">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function deleteWAContact(index) {
+      waContacts.splice(index, 1);
+      renderWAContacts();
+    }
+
+    function addWAContact() {
+      const nameEl  = document.getElementById('wa-new-name');
+      const aliasEl = document.getElementById('wa-new-alias');
+      const phoneEl = document.getElementById('wa-new-phone');
+
+      const name  = nameEl.value.trim();
+      const alias = aliasEl.value.trim();
+      const phone = phoneEl.value.trim();
+
+      if (!name) {
+        nameEl.classList.add('border-rose-500');
+        nameEl.placeholder = 'Name is required!';
+        setTimeout(() => { nameEl.classList.remove('border-rose-500'); nameEl.placeholder = 'Full name (as in WhatsApp)'; }, 2000);
+        return;
+      }
+
+      waContacts.push({ name, alias, phone });
+      nameEl.value  = '';
+      aliasEl.value = '';
+      phoneEl.value = '';
+      renderWAContacts();
+    }
+
+    async function saveWAContacts() {
+      if (!window.pywebview || !window.pywebview.api) {
+        showToast('Not connected to assistant backend.', true);
+        return;
+      }
+      try {
+        const res = await window.pywebview.api.save_whatsapp_contacts(waContacts);
+        if (res.success) {
+          showToast('✅ ' + res.message);
+          closeWhatsAppContacts();
+        } else {
+          showToast(res.message || 'Save failed.', true);
+        }
+      } catch(e) {
+        showToast(e.toString(), true);
+      }
+    }
+
+    // ===== PowerPoint Commands Reference =====
+    const PPT_COMMAND_CATEGORIES = [
+      {
+        category: "🚀 Slideshow Navigation & Control",
+        items: [
+          { name: "Start Slideshow (from start)", triggers: ["start presentation", "start slideshow", "begin presentation", "play presentation"], key: "F5" },
+          { name: "Present from Current Slide", triggers: ["present from current slide", "start from current slide", "present this slide"], key: "Shift + F5" },
+          { name: "Next Slide", triggers: ["next slide", "advance slide", "go forward", "next page"], key: "Right Arrow / PageDown" },
+          { name: "Previous Slide", triggers: ["previous slide", "go back slide", "back slide", "prior slide"], key: "Left Arrow / PageUp" },
+          { name: "Jump to Specific Slide", triggers: ["go to slide [number]", "jump to slide 5", "switch to slide 3"], key: "[Number] + Enter" },
+          { name: "First Slide", triggers: ["go to first slide", "jump to beginning", "start of presentation"], key: "Ctrl + Home" },
+          { name: "Last Slide", triggers: ["go to last slide", "jump to end", "final slide"], key: "Ctrl + End" },
+          { name: "End Slideshow", triggers: ["end presentation", "stop presentation", "exit slideshow", "stop presenting"], key: "Escape" },
+        ]
+      },
+      {
+        category: "🎯 Laser Pointer, Pen & Annotations",
+        items: [
+          { name: "Laser Pointer", triggers: ["laser pointer", "turn on laser pointer", "activate laser"], key: "Ctrl + L" },
+          { name: "Drawing Pen", triggers: ["turn on pen", "pen tool", "draw mode", "activate pen"], key: "Ctrl + P" },
+          { name: "Arrow Pointer (Normal)", triggers: ["arrow pointer", "normal pointer", "turn off laser", "mouse pointer"], key: "Ctrl + A" },
+          { name: "Erase All Ink Annotations", triggers: ["erase ink", "clear drawings", "erase annotations"], key: "E" },
+        ]
+      },
+      {
+        category: "🖥️ Screen Display & Live Captions",
+        items: [
+          { name: "Blackout / Blank Screen", triggers: ["black screen", "blank screen", "pause presentation screen"], key: "B" },
+          { name: "Whiteout Screen", triggers: ["white screen", "whiteout screen", "turn screen white"], key: "W" },
+          { name: "Live Subtitles / Captions", triggers: ["toggle subtitles", "turn on captions", "toggle captions"], key: "J" },
+          { name: "Play / Pause Slide Video", triggers: ["play slide video", "pause slide video", "pause presentation video"], key: "Alt + P" },
+        ]
+      },
+      {
+        category: "📝 Deck Editing & File Operations",
+        items: [
+          { name: "Open / Focus PowerPoint", triggers: ["open powerpoint", "launch powerpoint", "start ppt"], key: "Win App" },
+          { name: "Close PowerPoint", triggers: ["close powerpoint", "exit powerpoint", "quit powerpoint"], key: "Alt + F4 / Taskkill" },
+          { name: "New Blank Presentation", triggers: ["new presentation", "create new presentation", "new ppt"], key: "Ctrl + N" },
+          { name: "Insert New Slide", triggers: ["new slide", "insert slide", "add slide"], key: "Ctrl + M" },
+          { name: "Duplicate Slide", triggers: ["duplicate slide", "copy slide", "clone slide"], key: "Ctrl + D" },
+          { name: "Save Presentation", triggers: ["save presentation", "save ppt", "save slide"], key: "Ctrl + S" },
+          { name: "Save As Presentation", triggers: ["save presentation as", "save ppt as"], key: "F12" },
+          { name: "Open Presentation File", triggers: ["open presentation file", "open ppt file", "open slide file"], key: "Ctrl + O" },
+          { name: "Undo Action", triggers: ["undo slide", "undo ppt change"], key: "Ctrl + Z" },
+          { name: "Redo Action", triggers: ["redo slide", "redo ppt change"], key: "Ctrl + Y" },
+          { name: "Zoom In View", triggers: ["ppt zoom in", "zoom in slide"], key: "Ctrl + +" },
+          { name: "Zoom Out View", triggers: ["ppt zoom out", "zoom out slide"], key: "Ctrl + -" },
+        ]
+      }
+    ];
+
+    function openPPTCommands() {
+      const modal = document.getElementById('ppt-commands-modal');
+      modal.classList.remove('hidden');
+      renderPPTCommands(PPT_COMMAND_CATEGORIES);
+      lucide.createIcons();
+    }
+
+    function closePPTCommands() {
+      const modal = document.getElementById('ppt-commands-modal');
+      modal.classList.add('hidden');
+    }
+
+    function filterPPTCommands() {
+      const q = (document.getElementById('ppt-cmd-search').value || '').toLowerCase().trim();
+      if (!q) {
+        renderPPTCommands(PPT_COMMAND_CATEGORIES);
+        return;
+      }
+      const filtered = PPT_COMMAND_CATEGORIES.map(cat => {
+        const matchingItems = cat.items.filter(item => 
+          item.name.toLowerCase().includes(q) ||
+          item.key.toLowerCase().includes(q) ||
+          item.triggers.some(t => t.toLowerCase().includes(q))
+        );
+        return { category: cat.category, items: matchingItems };
+      }).filter(cat => cat.items.length > 0);
+
+      renderPPTCommands(filtered);
+    }
+
+    function renderPPTCommands(categories) {
+      const container = document.getElementById('ppt-commands-list');
+      if (!categories || categories.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-500">
+            <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+            <p class="text-xs">No matching PowerPoint commands found.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = categories.map(cat => `
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-orange-400/90 uppercase tracking-wider px-1 pt-1">${cat.category}</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            ${cat.items.map(item => `
+              <div class="p-3 rounded-xl bg-nova-surface border border-nova-border/60 hover:border-orange-500/40 transition-colors flex flex-col justify-between group">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-semibold text-white group-hover:text-orange-300 transition-colors">${item.name}</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30 shrink-0 ml-2">${item.key}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1 mt-1">
+                    ${item.triggers.map(t => `
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-nova-surface2 text-slate-300 border border-nova-border/40 font-mono">
+                        "${t}"
+                      </span>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
     // Initialize when PyWebView is ready
     window.addEventListener('pywebviewready', () => {
       loadPlugins();
@@ -998,6 +1516,119 @@
       lucide.createIcons();
     }, 500);
   </script>
+
+  <!-- ===== WhatsApp Contacts Manager Modal ===== -->
+  <div id="wa-contacts-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-nova-card border border-nova-border rounded-2xl w-full max-w-lg shadow-2xl flex flex-col" style="max-height:88vh;">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-nova-border shrink-0">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <span class="text-xl">💬</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">WhatsApp Contacts</h3>
+            <p class="text-[11px] text-slate-400">Saved contacts improve voice name recognition accuracy</p>
+          </div>
+        </div>
+        <button onclick="closeWhatsAppContacts()" class="p-1.5 rounded-lg hover:bg-nova-surface2 text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- How it works tip -->
+      <div class="mx-5 mt-4 px-3.5 py-2.5 rounded-xl bg-cyan-500/5 border border-cyan-500/20 text-[11px] text-cyan-300/80 shrink-0">
+        <span class="font-semibold text-cyan-300">How it works:</span>
+        Add your contacts with their <span class="font-semibold">full WhatsApp name</span> and a
+        <span class="font-semibold">voice alias</span> (how you say it). Example: name = <em>"Prinson Kumar"</em>,
+        alias = <em>"prinson"</em>. Then say <em>"Alexa send message to prinson"</em> and the assistant will search
+        for <em>"Prinson Kumar"</em> exactly.
+      </div>
+
+      <!-- Contact list -->
+      <div id="wa-contacts-list" class="flex-1 overflow-y-auto px-5 py-3 space-y-2 min-h-0">
+      </div>
+
+      <!-- Add new contact form -->
+      <div class="px-5 py-4 border-t border-nova-border/60 space-y-3 shrink-0">
+        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Add New Contact</p>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="wa-new-name" type="text" placeholder="Full name (as in WhatsApp)"
+            class="col-span-2 px-3 py-2 rounded-xl bg-nova-surface border border-nova-border text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 transition-colors" />
+          <input id="wa-new-alias" type="text" placeholder='Voice alias (how you say it)'
+            class="px-3 py-2 rounded-xl bg-nova-surface border border-nova-border text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 transition-colors" />
+          <input id="wa-new-phone" type="text" placeholder="Phone (optional)"
+            class="px-3 py-2 rounded-xl bg-nova-surface border border-nova-border text-xs text-white placeholder-slate-600 focus:outline-none focus:border-nova-borderHover transition-colors" />
+        </div>
+        <button onclick="addWAContact()" class="w-full py-2 rounded-xl bg-nova-surface hover:bg-nova-surface2 border border-nova-border text-xs text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center space-x-1.5">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Add Contact</span>
+        </button>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="px-5 pb-4 flex items-center justify-end space-x-2 shrink-0">
+        <button onclick="closeWhatsAppContacts()" class="px-4 py-2 rounded-xl bg-nova-surface hover:bg-nova-surface2 border border-nova-border text-xs text-slate-300 font-medium transition-all">
+          Cancel
+        </button>
+        <button onclick="saveWAContacts()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5">
+          <i data-lucide="save" class="w-3.5 h-3.5"></i>
+          <span>Save Contacts</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PowerPoint Commands Modal ===== -->
+  <div id="ppt-commands-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-nova-card border border-nova-border rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style="max-height:88vh;">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-nova-border shrink-0">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+            <span class="text-xl">🖥️</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-sm font-bold text-white">PowerPoint Voice Commands</h3>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 font-semibold border border-orange-500/30">29 Commands</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Complete reference of hands-free presentation, drawing, and navigation controls</p>
+          </div>
+        </div>
+        <button onclick="closePPTCommands()" class="p-1.5 rounded-lg hover:bg-nova-surface2 text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="px-5 pt-3 pb-2 border-b border-nova-border/60 shrink-0">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input id="ppt-cmd-search" type="text" oninput="filterPPTCommands()" placeholder="Search commands, shortcuts, or phrases (e.g. next, laser, slide 5, pen)..."
+            class="w-full pl-9 pr-3 py-2 rounded-xl bg-nova-surface border border-nova-border text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 transition-colors" />
+        </div>
+      </div>
+
+      <!-- Command list -->
+      <div id="ppt-commands-list" class="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 border-t border-nova-border flex items-center justify-between text-xs text-slate-400 shrink-0 bg-nova-surface/30">
+        <div class="flex items-center space-x-1.5 text-[11px]">
+          <i data-lucide="mic" class="w-3.5 h-3.5 text-orange-400"></i>
+          <span>Say: <strong class="text-white">"Alexa, [command]"</strong> or <strong class="text-white">"Sana, [command]"</strong></span>
+        </div>
+        <button onclick="closePPTCommands()" class="px-4 py-1.5 rounded-xl bg-nova-surface hover:bg-nova-surface2 border border-nova-border text-xs text-slate-300 font-medium transition-all">
+          Close Guide
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>

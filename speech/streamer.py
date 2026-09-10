@@ -26,6 +26,7 @@ try:
     from plugins.profile_manager import profile_manager
 except Exception:
     profile_manager = None
+from speech.voice_auth import voice_authenticator
 
 
 logging.basicConfig(level=logging.INFO , format="%(asctime)s - %(levelname)s - %(message)s")
@@ -366,6 +367,21 @@ class SpeechStreamer:
                             if self.is_wake_word_detected(idle_text) and self.is_wake_word_detected(first_words):
                                 logger.info(f"Wake word '{self.wake_word}' matched in: '{idle_text}'")
 
+                                # ── Voice Lock Check on Wake Word / Idle Audio ──
+                                voice_lock_enabled = False
+                                threshold = 0.72
+                                if profile_manager:
+                                    voice_lock_enabled = profile_manager.get("voice_lock_enabled", False)
+                                    threshold = float(profile_manager.get("voice_lock_threshold", 0.72))
+
+                                if voice_lock_enabled:
+                                    is_authorized, score = voice_authenticator.verify_speaker(idle_audio, threshold=threshold)
+                                    if not is_authorized:
+                                        logger.warning(f"🚨 [VOICE LOCK] Unauthorized speaker wake attempt rejected (Score: {score:.2f} < {threshold:.2f}). Ignored.")
+                                        continue
+                                    else:
+                                        logger.info(f"✅ [VOICE LOCK] Authorized owner voice confirmed (Score: {score:.2f} >= {threshold:.2f}).")
+
                                 if on_wake_word_callback:
                                     on_wake_word_callback()
 
@@ -515,6 +531,22 @@ class SpeechStreamer:
                         if text.lower().strip(".!?, ") in KNOWN_NON_COMMANDS or len(text.strip()) <= 2:
                             logger.info(f"Ignored standalone wake word utterance: '{text}' (no command given)")
                             text = ""
+
+                        # ── Voice Lock (Speaker Verification Biometrics) ──
+                        if text:
+                            voice_lock_enabled = False
+                            threshold = 0.70
+                            if profile_manager:
+                                voice_lock_enabled = profile_manager.get("voice_lock_enabled", False)
+                                threshold = float(profile_manager.get("voice_lock_threshold", 0.70))
+
+                            if voice_lock_enabled:
+                                is_authorized, score = voice_authenticator.verify_speaker(full_audio, threshold=threshold)
+                                if not is_authorized:
+                                    logger.warning(f"🚨 [VOICE LOCK] Access Denied: Unauthorized voice (Score: {score:.2f} < {threshold:.2f}). Command '{text}' blocked.")
+                                    text = ""
+                                else:
+                                    logger.info(f"✅ [VOICE LOCK] Access Granted: Verified owner (Score: {score:.2f} >= {threshold:.2f}).")
 
                         if text:
                             logger.info(f"Executing Transcribed Command: '{text}'")

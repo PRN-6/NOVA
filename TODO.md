@@ -163,3 +163,7 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 | **v2.0** | *Production Release* | Complete Inno Setup installer with Auto-start and settings GUI. |
 | **v3.0** | *Mobile Expansion* | SANA Android app — voice control for phone + remote PC control over internet. |
 
+
+
+
+in the plugin of the whatsapp make a new window for it when they click the whatsapp plugin to configure it then can add their whatsapp contacts in the plugin so that the acuracy of the name when we say open whatsapp and send message to prinson it can detect the chat correctly can we do this?

@@ -11,6 +11,7 @@ import numpy as np
 
 from plugins.manager import plugin_manager
 from plugins.profile_manager import profile_manager
+from speech.voice_auth import voice_authenticator
 
 logger = logging.getLogger("PRIVACY68.DashboardBridge")
 
@@ -37,9 +38,10 @@ class DashboardAPI:
                 "wake_word": profile_manager.get("wake_word", "sana"),
                 "wake_threshold": float(profile_manager.get("wake_threshold", 0.50)),
                 "whisper_model": profile_manager.get("whisper_model", "small.en"),
-                "whisper_device": profile_manager.get("whisper_device", "cuda"),
                 "hud_enabled": bool(profile_manager.get("hud_enabled", True)),
                 "theme": profile_manager.get("theme", "obsidian_red"),
+                "voice_lock_enabled": bool(profile_manager.get("voice_lock_enabled", False)),
+                "voice_lock_threshold": float(profile_manager.get("voice_lock_threshold", 0.70)),
             }
         except Exception as e:
             logger.error(f"Error getting profile: {e}")
@@ -351,6 +353,127 @@ class DashboardAPI:
             return {"success": True, "level": level_pct, "rms": rms}
         except Exception as e:
             return {"success": False, "level": 0, "message": str(e)}
+
+    # ---------------- Voice Lock (Speaker Verification) ---------------- #
+
+    def get_voice_lock_status(self) -> Dict[str, Any]:
+        """Returns the current state of Voice Lock biometrics."""
+        try:
+            status = voice_authenticator.get_status()
+            status["enabled"] = bool(profile_manager.get("voice_lock_enabled", False))
+            status["threshold"] = float(profile_manager.get("voice_lock_threshold", 0.70))
+            return status
+        except Exception as e:
+            logger.error(f"Error getting voice lock status: {e}")
+            return {"enabled": False, "is_enrolled": False, "threshold": 0.70, "error": str(e)}
+
+    def toggle_voice_lock(self, enabled: bool) -> Dict[str, Any]:
+        """Enables or disables Voice Lock gating."""
+        try:
+            profile_manager.set("voice_lock_enabled", enabled)
+            logger.info(f"Voice Lock set to {'ENABLED' if enabled else 'DISABLED'}")
+            return {"success": True, "enabled": enabled}
+        except Exception as e:
+            logger.error(f"Error toggling voice lock: {e}")
+            return {"success": False, "message": str(e)}
+
+    def set_voice_lock_threshold(self, threshold: float) -> Dict[str, Any]:
+        """Updates the cosine similarity threshold (e.g. 0.70)."""
+        try:
+            th = max(0.40, min(0.95, float(threshold)))
+            profile_manager.set("voice_lock_threshold", th)
+            return {"success": True, "threshold": th}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def record_voice_enrollment_sample(self) -> Dict[str, Any]:
+        """
+        Records 3.0 seconds from the default microphone and extracts a voice embedding sample.
+        """
+        try:
+            duration = 3.0
+            sr = 16000
+            logger.info(f"Recording enrollment sample ({duration}s @ {sr}Hz)...")
+            recording = sd.rec(int(duration * sr), samplerate=sr, channels=1, dtype='float32')
+            sd.wait()
+            
+            audio = recording.flatten()
+            rms = float(np.sqrt(np.mean(audio**2)))
+            if rms < 0.005:
+                return {
+                    "success": False,
+                    "message": "Audio volume too low. Please speak louder into your microphone.",
+                    "count": len(voice_authenticator.temp_enrollment_samples)
+                }
+
+            res = voice_authenticator.enroll_sample(audio)
+            return res
+        except Exception as e:
+            logger.error(f"Error during enrollment recording: {e}")
+            return {"success": False, "message": str(e), "count": len(voice_authenticator.temp_enrollment_samples)}
+
+    def finalize_voice_enrollment(self) -> Dict[str, Any]:
+        """
+        Averages all recorded samples, creates master profile, and enables Voice Lock.
+        """
+        try:
+            user_name = profile_manager.get("user_name", "Owner")
+            success = voice_authenticator.save_profile(owner_name=user_name)
+            if success:
+                profile_manager.set("voice_lock_enabled", True)
+                return {
+                    "success": True,
+                    "message": "Voice profile successfully enrolled and activated!"
+                }
+            return {
+                "success": False,
+                "message": "Could not finalize voice profile. Please record 3 samples first."
+            }
+        except Exception as e:
+            logger.error(f"Error finalizing voice enrollment: {e}")
+            return {"success": False, "message": str(e)}
+
+    def reset_voice_enrollment(self) -> Dict[str, Any]:
+        """Clears the master voice profile and disables Voice Lock."""
+        try:
+            voice_authenticator.clear_profile()
+            profile_manager.set("voice_lock_enabled", False)
+            return {"success": True, "message": "Voice profile deleted successfully."}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def test_voice_match(self) -> Dict[str, Any]:
+        """
+        Records 2.5 seconds of live speech and computes real-time similarity score against master profile.
+        """
+        try:
+            duration = 2.5
+            sr = 16000
+            recording = sd.rec(int(duration * sr), samplerate=sr, channels=1, dtype='float32')
+            sd.wait()
+
+            audio = recording.flatten()
+            rms = float(np.sqrt(np.mean(audio**2)))
+            if rms < 0.005:
+                return {
+                    "success": False,
+                    "message": "Audio too quiet. Speak clearly into the microphone.",
+                    "score": 0.0,
+                    "is_match": False
+                }
+
+            threshold = float(profile_manager.get("voice_lock_threshold", 0.70))
+            is_match, score = voice_authenticator.verify_speaker(audio, threshold=threshold)
+            return {
+                "success": True,
+                "score": round(score, 3),
+                "threshold": threshold,
+                "is_match": is_match,
+                "message": f"Match Score: {int(score * 100)}% ({'MATCH - Owner Verified' if is_match else 'NO MATCH - Access Denied'})"
+            }
+        except Exception as e:
+            logger.error(f"Error testing voice match: {e}")
+            return {"success": False, "score": 0.0, "is_match": False, "message": str(e)}
 
     # ---------------- System Utilities ---------------- #
 

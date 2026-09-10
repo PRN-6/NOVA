@@ -42,8 +42,22 @@ class SkillManager:
             if skill.name == tool_name:
                 return skill.execute(text)
                 
-        # Check plugin actions
-        return plugin_manager.execute_action(tool_name, text)
+        # Check direct plugin action (e.g. 'ppt.open', 'whatsapp.send_message')
+        if plugin_manager.execute_action(tool_name, text):
+            return True
+
+        # AI name fallback mapping (e.g. if Ollama selected 'PowerPoint' instead of 'ppt.open')
+        normalized = tool_name.lower().strip().replace(" ", "").replace("_", "").replace(".", "")
+        if "powerpoint" in normalized or normalized == "ppt":
+            return plugin_manager.execute_action("ppt.open", text)
+        elif "whatsapp" in normalized:
+            return plugin_manager.execute_action("whatsapp.open", text)
+        elif "chrome" in normalized:
+            return plugin_manager.execute_action("chrome.open", text)
+        elif "notepad" in normalized:
+            return plugin_manager.execute_action("notepad.open", text)
+
+        return False
 
 # Create a global instance that executor.py and router.py will use
 manager = SkillManager()
