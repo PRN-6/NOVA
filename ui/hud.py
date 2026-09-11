@@ -79,7 +79,7 @@ class FloatingHUD:
     def start_ui(self):
         """Initializes the Tkinter window and starts its main loop."""
         self.root = tk.Tk()
-        self.root.title("SANA Fullscreen HUD Overlay")
+        self.root.title("PRIVACY68 Fullscreen HUD Overlay")
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
         
@@ -241,7 +241,7 @@ class FloatingHUD:
         # ─────────────────────────────────────────────────────────────
         # 3. TOP TELEMETRY RIBBON BADGE
         # ─────────────────────────────────────────────────────────────
-        badge_text = theme.get("badge", "SANA")
+        badge_text = theme.get("badge", "PRIVACY68")
         top_cx = sw // 2
         top_cy = margin + 16
         

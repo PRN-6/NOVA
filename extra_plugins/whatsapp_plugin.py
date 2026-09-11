@@ -17,7 +17,7 @@ except ImportError:
     HAS_OLLAMA = False
 
 user32 = ctypes.windll.user32
-logger = logging.getLogger("SANA.Plugin.WhatsApp")
+logger = logging.getLogger("PRIVACY68.Plugin.WhatsApp")
 
 # Virtual key codes
 VK_CONTROL = 0x11
@@ -41,7 +41,7 @@ def _press_paste():
 
 class WhatsAppPlugin(BasePlugin):
     """
-    Standalone WhatsApp Desktop Plugin for SANA Assistant.
+    Standalone WhatsApp Desktop Plugin for PRIVACY68.
     Provides launching, closing, and AI-powered voice messaging.
     """
     id = "whatsapp"
@@ -251,10 +251,19 @@ class WhatsAppPlugin(BasePlugin):
             except Exception as e:
                 logger.warning(f"EXE launch failed: {e}. Falling back to URI...")
 
-        # Final fallback: URI scheme
+        # Next fallback: URI scheme
         try:
             subprocess.Popen("start whatsapp:", shell=True)
             logger.info("WhatsApp launched via URI scheme")
+            return True
+        except Exception as e:
+            logger.warning(f"URI launch failed: {e}. Falling back to browser...")
+
+        # Ultimate fallback: WhatsApp Web in browser
+        try:
+            import webbrowser
+            webbrowser.open("https://web.whatsapp.com")
+            logger.info("WhatsApp launched via browser fallback (https://web.whatsapp.com)")
             return True
         except Exception as e:
             logger.error(f"All WhatsApp launch methods failed: {e}")

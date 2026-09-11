@@ -46,7 +46,12 @@ class PluginManager:
         # 1. Load Built-In Shipped Plugins
         self._scan_directory(BUILTIN_PLUGINS_DIR, is_builtin=True)
 
-        # 2. Load User Custom Plugins from AppData
+        # 2. Load Extra Shipped Plugins (e.g. PowerPoint, WhatsApp, Notepad, Brave)
+        extra_plugins_dir = os.path.abspath(os.path.join(BUILTIN_PLUGINS_DIR, "..", "extra_plugins"))
+        if os.path.exists(extra_plugins_dir):
+            self._scan_directory(extra_plugins_dir, is_builtin=True)
+
+        # 3. Load User Custom Plugins from AppData
         if os.path.exists(USER_PLUGINS_DIR):
             self._scan_directory(USER_PLUGINS_DIR, is_builtin=False)
 

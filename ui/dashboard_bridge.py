@@ -361,11 +361,11 @@ class DashboardAPI:
         try:
             status = voice_authenticator.get_status()
             status["enabled"] = bool(profile_manager.get("voice_lock_enabled", False))
-            status["threshold"] = float(profile_manager.get("voice_lock_threshold", 0.70))
+            status["threshold"] = float(profile_manager.get("voice_lock_threshold", 0.50))
             return status
         except Exception as e:
             logger.error(f"Error getting voice lock status: {e}")
-            return {"enabled": False, "is_enrolled": False, "threshold": 0.70, "error": str(e)}
+            return {"enabled": False, "is_enrolled": False, "threshold": 0.50, "error": str(e)}
 
     def toggle_voice_lock(self, enabled: bool) -> Dict[str, Any]:
         """Enables or disables Voice Lock gating."""
@@ -386,26 +386,41 @@ class DashboardAPI:
         except Exception as e:
             return {"success": False, "message": str(e)}
 
-    def record_voice_enrollment_sample(self) -> Dict[str, Any]:
+    def _get_enrollment_audio(self, duration: float) -> np.ndarray:
         """
-        Records 3.0 seconds from the default microphone and extracts a voice embedding sample.
+        Captures audio via the running SpeechStreamer (same device/gain as live
+        verification) if available, otherwise falls back to sd.rec().
         """
         try:
-            duration = 3.0
-            sr = 16000
-            logger.info(f"Recording enrollment sample ({duration}s @ {sr}Hz)...")
-            recording = sd.rec(int(duration * sr), samplerate=sr, channels=1, dtype='float32')
-            sd.wait()
-            
-            audio = recording.flatten()
+            # Prefer the already-running InputStream so enrollment and
+            # live verification share an identical audio path.
+            from speech.streamer import speech_streamer
+            if speech_streamer is not None and hasattr(speech_streamer, 'capture_enrollment_audio'):
+                logger.info(f"Capturing enrollment via active stream ({duration}s)...")
+                return speech_streamer.capture_enrollment_audio(duration=duration)
+        except Exception as e:
+            logger.warning(f"Streamer capture unavailable, falling back to sd.rec(): {e}")
+        # Fallback: direct mic recording
+        logger.info(f"Capturing enrollment via sd.rec ({duration}s)...")
+        recording = sd.rec(int(duration * 16000), samplerate=16000, channels=1, dtype='float32')
+        sd.wait()
+        return recording.flatten()
+
+    def record_voice_enrollment_sample(self) -> Dict[str, Any]:
+        """
+        Records 3.0 seconds from the microphone (using the same audio path as live
+        speaker verification) and extracts a voice embedding enrollment sample.
+        """
+        try:
+            audio = self._get_enrollment_audio(duration=3.0)
             rms = float(np.sqrt(np.mean(audio**2)))
             if rms < 0.005:
                 return {
                     "success": False,
-                    "message": "Audio volume too low. Please speak louder into your microphone.",
+                    "message": "Audio volume too low — please speak louder into your microphone.",
                     "count": len(voice_authenticator.temp_enrollment_samples)
                 }
-
+            logger.info(f"Enrollment sample RMS={rms:.4f}. Extracting embedding...")
             res = voice_authenticator.enroll_sample(audio)
             return res
         except Exception as e:
@@ -444,15 +459,11 @@ class DashboardAPI:
 
     def test_voice_match(self) -> Dict[str, Any]:
         """
-        Records 2.5 seconds of live speech and computes real-time similarity score against master profile.
+        Records 3.0 seconds of live speech (via same audio path as live verification)
+        and computes real-time similarity score against the master voice profile.
         """
         try:
-            duration = 2.5
-            sr = 16000
-            recording = sd.rec(int(duration * sr), samplerate=sr, channels=1, dtype='float32')
-            sd.wait()
-
-            audio = recording.flatten()
+            audio = self._get_enrollment_audio(duration=3.0)
             rms = float(np.sqrt(np.mean(audio**2)))
             if rms < 0.005:
                 return {
@@ -462,14 +473,14 @@ class DashboardAPI:
                     "is_match": False
                 }
 
-            threshold = float(profile_manager.get("voice_lock_threshold", 0.70))
+            threshold = float(profile_manager.get("voice_lock_threshold", 0.50))
             is_match, score = voice_authenticator.verify_speaker(audio, threshold=threshold)
             return {
                 "success": True,
                 "score": round(score, 3),
                 "threshold": threshold,
                 "is_match": is_match,
-                "message": f"Match Score: {int(score * 100)}% ({'MATCH - Owner Verified' if is_match else 'NO MATCH - Access Denied'})"
+                "message": f"Match Score: {int(score * 100)}% ({'MATCH ✅ — Owner Verified' if is_match else 'NO MATCH ❌ — Access Denied'})"
             }
         except Exception as e:
             logger.error(f"Error testing voice match: {e}")

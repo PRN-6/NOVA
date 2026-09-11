@@ -6,11 +6,11 @@ from typing import Callable, Dict, List
 from plugins.base_plugin import BasePlugin
 from plugins.win_keys import trigger_new_tab, trigger_close_tab, trigger_reopen_tab, kill_process
 
-logger = logging.getLogger("SANA.Plugin.Brave")
+logger = logging.getLogger("PRIVACY68.Plugin.Brave")
 
 class BravePlugin(BasePlugin):
     """
-    Standalone Brave Browser Plugin for SANA Assistant.
+    Standalone Brave Browser Plugin for PRIVACY68 Assistant.
     Provides launching, closing, new tab, close tab, and reopen tab actions.
     """
     id = "brave"

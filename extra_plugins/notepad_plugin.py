@@ -4,7 +4,7 @@ from typing import Dict,List,Callable
 import subprocess
 from plugins.win_keys import kill_process
 
-logger = logging.getLogger("SANA.PLUGIN.NOTEPAD")
+logger = logging.getLogger("PRIVACY68.Plugin.Notepad")
 
 class NotepadPluggin(BasePlugin):
     #this plugin opens and closes notepad

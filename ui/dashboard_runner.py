@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import threading
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,12 +28,33 @@ def get_dashboard_html_path() -> str:
             return alt_path
     return html_path
 
+
+def _start_capture_stream() -> None:
+    """
+    Spins up a SpeechStreamer in the dashboard process solely for enrollment
+    audio capture.  No Whisper is loaded; the stream just collects mic chunks
+    via the callback so that _get_enrollment_audio() can tap it.
+    """
+    try:
+        from speech.streamer import SpeechStreamer, set_speech_streamer
+        streamer = SpeechStreamer()
+        set_speech_streamer(streamer)
+        # Open the InputStream so _audio_callback runs (needed for capture)
+        streamer.stream.start()
+        logger.info("Dashboard capture stream started (enrollment mode).")
+    except Exception as e:
+        logger.warning(f"Could not start dashboard capture stream: {e}")
+
+
 def run_dashboard():
     """Launches the modern PRIVACY68 Control Center via WebView2."""
     html_path = get_dashboard_html_path()
     if not os.path.exists(html_path):
         logger.error(f"Dashboard HTML file not found at: {html_path}")
         return
+
+    # Start a lightweight capture-only stream so enrollment uses the correct mic
+    threading.Thread(target=_start_capture_stream, daemon=True).start()
 
     api = DashboardAPI()
     window = webview.create_window(

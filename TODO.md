@@ -1,14 +1,14 @@
-# 📋 SANA Feature Roadmap & TO-DO List
+# 📋 PRIVACY68 Feature Roadmap & TO-DO List
 
-This document outlines the planned improvements, bug fixes, new plugins, and architectural upgrades for the **SANA Assistant** project.
+This document outlines the planned improvements, bug fixes, new plugins, and architectural upgrades for the **PRIVACY68** project.
 
 ---
 
 ## 🔴 1. Immediate Fixes & High Priority
 
-- [ ] **Fix WhatsApp Launch Mechanism (`whatsapp_plugin.py`)**
-  - Current `start whatsapp:` fails if protocol handler isn't registered.
-  - Add fallback sequence: Protocol URI (`whatsapp:`) $\rightarrow$ App Execution Alias (`WhatsApp.exe`) $\rightarrow$ Windows Store package lookup $\rightarrow$ WhatsApp Web in browser.
+- [x] **Fix WhatsApp Launch Mechanism & Contact Manager (`whatsapp_plugin.py`)**
+  - Robust fallback sequence: Windows Store UWP Package (`shell:AppsFolder`) $\rightarrow$ Standalone EXE (`WhatsApp.exe`) $\rightarrow$ Protocol URI (`whatsapp:`) $\rightarrow$ WhatsApp Web in browser (`https://web.whatsapp.com`).
+  - Contact Manager Modal in Dashboard allows adding named contacts with nicknames/aliases and fuzzy matching (`_resolve_contact`) so spoken commands accurately match real WhatsApp chat names.
 - [ ] **Text-To-Speech (TTS) Voice Responses**
   - Add offline, low-latency TTS (e.g., `pyttsx3`, `edge-tts`, or `piper-tts`) so SANA can speak back to confirm actions (e.g., *"Opening Chrome"*, *"Volume set to 50%"*).
 - [x] **Silero VAD Neural Network Integration**
@@ -20,10 +20,13 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
   - Allow users to set custom wake words (e.g., *"Hey Jarvis"*, *"Computer"*, *"Hey Sana"*, *"Friday"*) via UI settings or config.
   - Support custom regex patterns, phonetic alias expansion, and configurable sensitivity for user-defined awake call commands.
 - [x] **Speaker Recognition & Voice Biometrics (Owner-Only Voice Lock)**
-  - Integrate a speaker verification model (`CAM++ Neural ONNX` / `VoxCeleb`) to ensure SANA only responds to the primary user's voice.
-  - **Voice Enrollment**: Setup script (`speech/enroll.py`) & Dashboard UI wizard to capture 3 audio samples and generate a baseline voiceprint (`owner_voice.npy` stored in `%APPDATA%/PRIVACY68/`).
-  - **Real-Time Verification**: Extract acoustic embeddings from captured speech audio and compute cosine similarity against the owner's voiceprint before executing commands.
-  - **Rejection of Unauthorized Voices**: Silently drop or log non-matching voices (family, friends, TV/YouTube background chatter) below similarity threshold (default `0.62`).
+  - Integrated SOTA ECAPA-TDNN 512-d (192-d embedding) ONNX model with full Kaldi 80-channel filterbank and CMVN.
+  - Energy-based voice activity trimming (`trim_speech`) strips silence from audio so verification evaluates purely vocal tract characteristics.
+  - Verification threshold set at `0.65` (owner scores `0.85-0.95`, others score `< 0.45`).
+  - Dynamic disk profile reload and secure rejection when no profile is enrolled.
+- [x] **Wake-Word & Conversational Command Pipeline**
+  - Continuous two-step speech support: saying `"Alexa"` acknowledges the wake word and maintains active listening for 7 seconds so the user can speak their command without getting cut off.
+  - Seamless audio buffer handover preserves inline one-breath commands (`"Alexa, open PowerPoint"`).
 
 
 ---

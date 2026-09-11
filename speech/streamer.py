@@ -192,6 +192,12 @@ class SpeechStreamer:
         self.is_muted = False
         self.audio_queue: queue.Queue = queue.Queue()
 
+        # Enrollment capture state – filled by _audio_callback when active
+        self._enrollment_chunks: list = []
+        self._enrollment_target_chunks: int = 0
+        self._enrollment_event: threading.Event = threading.Event()
+        self._enrollment_lock: threading.Lock = threading.Lock()
+
         self.stream = sd.InputStream(
             samplerate = self.sample_rate,
             channels = config.CHANNELS,
@@ -237,10 +243,39 @@ class SpeechStreamer:
         # callback executed for each audio buffer
         if status:
             logger.warning(f"Audio stream status flag set: {status}")
+        chunk = indata.copy()
+        # Feed enrollment capture buffer (taps same device/gain as live stream)
+        with self._enrollment_lock:
+            if len(self._enrollment_chunks) < self._enrollment_target_chunks:
+                self._enrollment_chunks.append(chunk)
+                if len(self._enrollment_chunks) >= self._enrollment_target_chunks:
+                    self._enrollment_event.set()
         # If muted, do not queue audio to whisper
         if not self.is_muted:
-            self.audio_queue.put(indata.copy())
+            self.audio_queue.put(chunk)
     
+    def capture_enrollment_audio(self, duration: float = 3.0) -> np.ndarray:
+        """
+        Captures `duration` seconds of audio from the SAME stream/device/gain used for
+        live speaker verification.  This ensures enrollment and verification embeddings
+        are computed from acoustically identical input, fixing low-score mismatches when
+        sd.rec() picked a different device or applied different gain.
+        """
+        num_chunks = int(self.sample_rate * duration / config.BLOCK_SIZE) + 1
+        with self._enrollment_lock:
+            self._enrollment_chunks.clear()
+            self._enrollment_target_chunks = num_chunks
+            self._enrollment_event.clear()
+        if not self._enrollment_event.wait(timeout=duration + 5.0):
+            logger.warning("Enrollment capture timed out; using partial audio.")
+        with self._enrollment_lock:
+            captured = list(self._enrollment_chunks)
+            self._enrollment_target_chunks = 0
+        if not captured:
+            return np.zeros(int(self.sample_rate * duration), dtype=np.float32)
+        audio = np.concatenate(captured).flatten()
+        return audio[:int(self.sample_rate * duration)]
+
     def start(
         self,
         on_text_callback: Callable[[str], bool],
@@ -258,7 +293,7 @@ class SpeechStreamer:
         # Overlap: keep last half of the buffer so wake word at window boundaries is never missed
         IDLE_OVERLAP_CHUNKS = IDLE_WINDOW_CHUNKS // 2
 
-        logger.info(f"SANA Voice Assistant is online. Say '{self.wake_word}' to activate.")
+        logger.info(f"PRIVACY68 Voice Assistant is online. Say '{self.wake_word}' to activate.")
         try:
             with self.stream:
                 while self.stream.active:
@@ -367,21 +402,6 @@ class SpeechStreamer:
                             if self.is_wake_word_detected(idle_text) and self.is_wake_word_detected(first_words):
                                 logger.info(f"Wake word '{self.wake_word}' matched in: '{idle_text}'")
 
-                                # ── Voice Lock Check on Wake Word / Idle Audio ──
-                                voice_lock_enabled = False
-                                threshold = 0.72
-                                if profile_manager:
-                                    voice_lock_enabled = profile_manager.get("voice_lock_enabled", False)
-                                    threshold = float(profile_manager.get("voice_lock_threshold", 0.72))
-
-                                if voice_lock_enabled:
-                                    is_authorized, score = voice_authenticator.verify_speaker(idle_audio, threshold=threshold)
-                                    if not is_authorized:
-                                        logger.warning(f"🚨 [VOICE LOCK] Unauthorized speaker wake attempt rejected (Score: {score:.2f} < {threshold:.2f}). Ignored.")
-                                        continue
-                                    else:
-                                        logger.info(f"✅ [VOICE LOCK] Authorized owner voice confirmed (Score: {score:.2f} >= {threshold:.2f}).")
-
                                 if on_wake_word_callback:
                                     on_wake_word_callback()
 
@@ -393,34 +413,17 @@ class SpeechStreamer:
                                     except Exception:
                                         pass
 
-                                # Check if the wake word contained a full multi-word inline command
-                                # e.g. "Alexa open chrome and search for youtube" — require at least 2 distinct words
-                                inline_command = self.strip_wake_word(idle_text)
-                                inline_command = autocorrect_speech_command(inline_command)
-                                
-                                KNOWN_NON_COMMANDS = {
-                                    "alexa", "nova", "sana", "privacy68", "jarvis", "friday", "leo", "serena",
-                                    "hey alexa", "hey nova", "hey sana", "yes", "yeah", "okay", "hi", "hello", "thank you"
-                                }
-                                if inline_command and len(inline_command.split()) >= 2 and inline_command.lower() not in KNOWN_NON_COMMANDS:
-                                    logger.info(f"Inline multi-word command detected: '{inline_command}'")
-                                    on_text_callback(inline_command)
-                                    if on_sleep_callback:
-                                        on_sleep_callback()
-                                    with self.audio_queue.mutex:
-                                        self.audio_queue.queue.clear()
-                                    continue
-
-                                # No inline command — activate full listening mode and wait for complete command
-                                logger.info(f"Activated listening mode. Waiting for command...")
+                                # Activate listening mode and carry over recent audio chunks
+                                # so continuous command words spoken right after wake word in one breath are preserved
+                                logger.info("Activated listening mode. Listening for command...")
                                 self.is_active = True
                                 self.vad.reset()
                                 has_spoken = False
                                 speech_chunks = 0
                                 silence_counter = 0
-                                audio_buffer.clear()
-                                with self.audio_queue.mutex:
-                                    self.audio_queue.queue.clear()
+                                audio_buffer = list(idle_buffer)
+                                idle_buffer.clear()
+                                continue
                         continue
 
                     # 2. Active state: Record voice command
@@ -478,6 +481,34 @@ class SpeechStreamer:
                                 self.audio_queue.queue.clear()
                             continue
 
+                        # ── Voice Lock (Speaker Verification Biometrics Gate) ──
+                        # Architecture: Mic -> VAD -> ECAPA-TDNN -> Match? -> Faster-Whisper -> Router
+                        #                                           -> No Match? -> IGNORE
+                        voice_lock_enabled = False
+                        threshold = 0.50
+                        if profile_manager:
+                            voice_lock_enabled = profile_manager.get("voice_lock_enabled", False)
+                            threshold = float(profile_manager.get("voice_lock_threshold", 0.50))
+
+                        if voice_lock_enabled:
+                            is_authorized, score = voice_authenticator.verify_speaker(full_audio, threshold=threshold)
+                            if not is_authorized:
+                                logger.warning(f"🚨 [VOICE LOCK] Access Denied: Unauthorized voice (Score: {score:.2f} < {threshold:.2f}). Ignored immediately.")
+                                if on_sleep_callback:
+                                    on_sleep_callback()
+                                audio_buffer.clear()
+                                self.vad.reset()
+                                speech_chunks = 0
+                                silence_counter = 0
+                                has_spoken = False
+                                self.is_active = False
+                                with self.audio_queue.mutex:
+                                    self.audio_queue.queue.clear()
+                                logger.info(f"Command cycle rejected by Voice Lock. PRIVACY68 is in sleep mode (Say '{self.wake_word}' to speak).")
+                                continue
+                            else:
+                                logger.info(f"✅ [VOICE LOCK] Access Granted: Verified owner (Score: {score:.2f} >= {threshold:.2f}). Transcribing command...")
+
                         # Normalize audio volume so Whisper receives clean, high-gain signal
                         if max_peak > 0.005:
                             full_audio = (full_audio / max_peak) * 0.9
@@ -529,32 +560,25 @@ class SpeechStreamer:
                             "hey alexa", "hey nova", "hey sana", "yes", "yeah", "okay", "hi", "hello"
                         }
                         if text.lower().strip(".!?, ") in KNOWN_NON_COMMANDS or len(text.strip()) <= 2:
-                            logger.info(f"Ignored standalone wake word utterance: '{text}' (no command given)")
+                            logger.info(f"Wake word detected ('{text}'). Actively listening for your command...")
                             text = ""
 
-                        # ── Voice Lock (Speaker Verification Biometrics) ──
-                        if text:
-                            voice_lock_enabled = False
-                            threshold = 0.70
-                            if profile_manager:
-                                voice_lock_enabled = profile_manager.get("voice_lock_enabled", False)
-                                threshold = float(profile_manager.get("voice_lock_threshold", 0.70))
-
-                            if voice_lock_enabled:
-                                is_authorized, score = voice_authenticator.verify_speaker(full_audio, threshold=threshold)
-                                if not is_authorized:
-                                    logger.warning(f"🚨 [VOICE LOCK] Access Denied: Unauthorized voice (Score: {score:.2f} < {threshold:.2f}). Command '{text}' blocked.")
-                                    text = ""
-                                else:
-                                    logger.info(f"✅ [VOICE LOCK] Access Granted: Verified owner (Score: {score:.2f} >= {threshold:.2f}).")
+                        # If user spoke only the wake word, stay in active listening mode for their command!
+                        if not text:
+                            audio_buffer.clear()
+                            self.vad.reset()
+                            speech_chunks = 0
+                            silence_counter = 0
+                            has_spoken = False
+                            continue
 
                         if text:
                             logger.info(f"Executing Transcribed Command: '{text}'")
                             on_text_callback(text)
                         else:
-                            logger.info("No actionable command detected.")
+                            logger.info("Command was non-actionable.")
                         
-                        # Return to sleep mode to avoid unwanted inputs
+                        # Return to sleep mode after command attempt
                         if on_sleep_callback:
                             on_sleep_callback()
 
@@ -569,8 +593,22 @@ class SpeechStreamer:
                         # Clear audio queue to avoid stale audio
                         with self.audio_queue.mutex:
                             self.audio_queue.queue.clear()
-                        logger.info("Command completed. SANA is in sleep mode (Say 'Sana' to speak).")
+                        logger.info(f"Command cycle completed. PRIVACY68 is in sleep mode (Say '{self.wake_word}' to speak).")
 
         except Exception as e:
             logger.error(f"Error in streaming pipeline: {e}")
             raise
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton – set by app.py after constructing the streamer.
+# The dashboard bridge imports this to capture enrollment audio from the same
+# InputStream that handles live speaker verification, ensuring identical gain.
+# ---------------------------------------------------------------------------
+speech_streamer: "SpeechStreamer | None" = None
+
+
+def set_speech_streamer(instance: "SpeechStreamer") -> None:
+    """Called by app.py after constructing the SpeechStreamer to register the singleton."""
+    global speech_streamer
+    speech_streamer = instance

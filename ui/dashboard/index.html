@@ -72,6 +72,29 @@
     .glow-crimson {
       box-shadow: 0 0 25px -4px rgba(225, 29, 72, 0.3);
     }
+    
+    /* Waveform canvas */
+    .waveform {
+      background: rgba(255,255,255,0.05);
+      border-radius: .4rem;
+      width: 100%;
+      height: 80px;
+    }
+    
+    /* Energy meter */
+    .meter {
+      width: 100%;
+      height: .6rem;
+      background: hsl(210,15%,20%);
+      border-radius: .3rem;
+      overflow: hidden;
+    }
+    .meter .fill {
+      width: 0%;
+      height: 100%;
+      background: hsl(120,60%,45%);
+      transition: width .1s;
+    }
   </style>
 </head>
 
@@ -510,6 +533,13 @@
                     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                   </button>
                 </div>
+                <!-- Visual feedback for recording -->
+                <div class="mt-2 space-y-2">
+                  <canvas id="waveCanvas" width="380" height="80" class="waveform"></canvas>
+                  <div class="meter">
+                    <div id="energyBar" class="fill"></div>
+                  </div>
+                </div>
               </div>
 
               <!-- Right: Live Test & Sensitivity -->
@@ -543,15 +573,15 @@
                 <div class="space-y-1.5 pt-2 border-t border-nova-border/40">
                   <div class="flex justify-between items-center text-xs">
                     <span class="text-[11px] font-semibold text-slate-300">Speaker Match Threshold</span>
-                    <span id="vl-thresh-val" class="font-mono text-indigo-400 font-bold">0.70</span>
+                    <span id="vl-thresh-val" class="font-mono text-indigo-400 font-bold">0.50</span>
                   </div>
-                  <input type="range" id="vl_threshold_slider" min="0.50" max="0.90" step="0.05" value="0.70"
+                  <input type="range" id="vl_threshold_slider" min="0.35" max="0.80" step="0.05" value="0.50"
                     oninput="onThresholdSliderChange(this.value)"
                     class="w-full accent-indigo-500 bg-nova-surface rounded-lg cursor-pointer">
                   <div class="flex justify-between text-[10px] text-slate-500">
-                    <span>Lenient (0.50)</span>
-                    <span class="text-indigo-400/80 font-medium">Recommended (0.70)</span>
-                    <span>Strict (0.90)</span>
+                    <span>Lenient (0.35)</span>
+                    <span class="text-indigo-400/80 font-medium">Recommended (0.50)</span>
+                    <span>Strict (0.75)</span>
                   </div>
                 </div>
               </div>
@@ -754,41 +784,112 @@
       }
     }
 
-    async function recordEnrollmentSample() {
-      if (!window.pywebview || !window.pywebview.api) return;
-      const btn = document.getElementById('vl-record-btn');
-      const btnText = document.getElementById('vl-record-btn-text');
+    let localAudioCtx = null;
+let localAnalyser = null;
+let localMicStream = null;
+let localVisRAF = null;
 
-      btn.disabled = true;
-      btn.classList.add('animate-pulse', 'bg-red-600');
-      btnText.innerText = '🎙️ Speaking... (3s)';
+function startLocalVisualization() {
+  if (localAudioCtx) return; // already running
+  localAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
+    localMicStream = stream;
+    const source = localAudioCtx.createMediaStreamSource(stream);
+    localAnalyser = localAudioCtx.createAnalyser();
+    localAnalyser.fftSize = 512;
+    source.connect(localAnalyser);
+    drawWave();
+  }).catch(err => console.error('Viz mic error', err));
+}
 
-      try {
-        const res = await window.pywebview.api.record_voice_enrollment_sample();
-        if (res.success) {
-          updateEnrollmentDots(res.count);
-          showToast(`Sample ${res.count}/3 recorded!`);
-          if (res.count >= 3) {
-            btnText.innerText = 'Saving Profile...';
-            const saveRes = await window.pywebview.api.finalize_voice_enrollment();
-            if (saveRes.success) {
-              showToast('🎉 Voice Lock Profile Active!');
-              loadVoiceLockStatus();
-            } else {
-              showToast(saveRes.message || 'Could not save profile', true);
-            }
-          }
-        } else {
-          showToast(res.message || 'Recording failed', true);
-        }
-      } catch (err) {
-        showToast(err.toString(), true);
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('animate-pulse', 'bg-red-600');
-        loadVoiceLockStatus();
-      }
+function stopLocalVisualization() {
+  if (localVisRAF) cancelAnimationFrame(localVisRAF);
+  if (localMicStream) {
+    localMicStream.getTracks().forEach(t => t.stop());
+  }
+  if (localAudioCtx) {
+    localAudioCtx.close();
+    localAudioCtx = null;
+  }
+  const canvas = document.getElementById('waveCanvas');
+  if (canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  const bar = document.getElementById('energyBar');
+  if (bar) bar.style.width = '0%';
+}
+
+function drawWave() {
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+  const dataArray = new Uint8Array(localAnalyser.frequencyBinCount);
+  const bar = document.getElementById('energyBar');
+  function loop() {
+    localAnalyser.getByteTimeDomainData(dataArray);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'hsl(200,80%,60%)';
+    ctx.beginPath();
+    const sliceWidth = canvas.width / dataArray.length;
+    let x = 0;
+    for(let i=0;i<dataArray.length;i++) {
+      const v = dataArray[i] / 128.0;
+      const y = v * canvas.height/2;
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      x += sliceWidth;
     }
+    ctx.lineTo(canvas.width, canvas.height/2);
+    ctx.stroke();
+    // RMS energy for bar
+    let sum = 0;
+    for(let i=0;i<dataArray.length;i++) {
+      const val = dataArray[i] - 128;
+      sum += val*val;
+    }
+    const rms = Math.sqrt(sum/dataArray.length);
+    const pct = Math.min(100, (rms/64)*100);
+    if (bar) bar.style.width = pct + '%';
+    localVisRAF = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+async function recordEnrollmentSample() {
+  if (!window.pywebview || !window.pywebview.api) return;
+  const btn = document.getElementById('vl-record-btn');
+  const btnText = document.getElementById('vl-record-btn-text');
+
+  btn.disabled = true;
+  btn.classList.add('animate-pulse', 'bg-red-600');
+  btnText.innerText = '🎙️ Speaking... (3s)';
+
+  startLocalVisualization();
+
+  try {
+    const res = await window.pywebview.api.record_voice_enrollment_sample();
+    if (res.success) {
+      updateEnrollmentDots(res.count);
+      showToast(`Sample ${res.count}/3 recorded!`);
+      if (res.count >= 3) {
+        btnText.innerText = 'Saving Profile...';
+        const saveRes = await window.pywebview.api.finalize_voice_enrollment();
+        if (saveRes.success) {
+          showToast('🎉 Voice Lock Profile Active!');
+          loadVoiceLockStatus();
+        } else {
+          showToast(saveRes.message || 'Could not save profile', true);
+        }
+      }
+    } else {
+      showToast(res.message || 'Recording failed', true);
+    }
+  } catch (err) {
+    showToast(err.toString(), true);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('animate-pulse', 'bg-red-600');
+    stopLocalVisualization();
+    loadVoiceLockStatus();
+  }
+}
 
     async function resetVoiceLock() {
       if (!confirm('Are you sure you want to reset and delete your enrolled voice profile?')) return;

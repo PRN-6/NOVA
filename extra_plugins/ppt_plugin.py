@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional
 from plugins.base_plugin import BasePlugin
 from plugins.win_keys import kill_process
 
-logger = logging.getLogger("SANA.Plugin.PPT")
+logger = logging.getLogger("PRIVACY68.Plugin.PPT")
 user32 = ctypes.windll.user32
 
 # Virtual Key Codes
@@ -195,7 +195,7 @@ def _extract_slide_number(text: str) -> Optional[int]:
 
 class PPTPlugin(BasePlugin):
     """
-    Comprehensive PowerPoint Full Control Plugin for SANA Voice Assistant.
+    Comprehensive PowerPoint Full Control Plugin for PRIVACY68 Voice Assistant.
     Provides complete hands-free navigation, slide shows, annotations, editing, and screen controls.
     """
     id = "ppt"
@@ -203,7 +203,7 @@ class PPTPlugin(BasePlugin):
     icon = "🖥️"
     description = "Full control for Microsoft PowerPoint: slides, slideshows, laser pointer, pen, blank screen, and navigation."
     version = "1.0.0"
-    author = "SANA Core"
+    author = "PRIVACY68 Core"
     is_builtin = False
 
     @property

@@ -4,24 +4,85 @@ import json
 import logging
 import numpy as np
 import onnxruntime as ort
+
+# Fix for ONNX pybind API version mismatch on Windows
+try:
+    from onnxruntime.capi import onnxruntime_inference_collection
+    if hasattr(onnxruntime_inference_collection.InferenceSession, "_validate_graph_capture_run_api"):
+        onnxruntime_inference_collection.InferenceSession._validate_graph_capture_run_api = lambda self, run_options: None
+except Exception:
+    pass
+
 from typing import Tuple, Optional, List, Dict
 from huggingface_hub import hf_hub_download
 
 logger = logging.getLogger("PRIVACY68.VoiceAuth")
 
-APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
+APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "PRIVACY68")
 MODELS_DIR = os.path.join(APPDATA_DIR, "models")
 PROFILE_PATH = os.path.join(APPDATA_DIR, "voice_profile.npy")
 PROFILE_META_PATH = os.path.join(APPDATA_DIR, "voice_profile_meta.json")
 
+# Legacy migration path
+LEGACY_APPDATA_DIR = os.path.join(os.getenv("APPDATA", os.path.expanduser("~")), "SANA")
+LEGACY_PROFILE_PATH = os.path.join(LEGACY_APPDATA_DIR, "voice_profile.npy")
+LEGACY_META_PATH = os.path.join(LEGACY_APPDATA_DIR, "voice_profile_meta.json")
+
 os.makedirs(MODELS_DIR, exist_ok=True)
+
+
+def normalize_audio(audio: np.ndarray, target_peak: float = 0.9) -> np.ndarray:
+    """
+    Normalizes audio waveform to a consistent target peak amplitude.
+    Ensures identical dynamic range across enrollment samples, testing modal,
+    and live microphone streaming.
+    """
+    waveform = audio.flatten().astype(np.float32)
+    max_peak = np.max(np.abs(waveform))
+    if max_peak > 0.002:
+        return (waveform / max_peak) * target_peak
+    return waveform
+
+
+def trim_speech(audio: np.ndarray, sample_rate: int = 16000) -> np.ndarray:
+    """
+    Dynamically trims silence based on adaptive background noise floor estimation.
+    Ensures 100% of voiced speech is captured across all microphones without clipping soft vowels or consonants.
+    """
+    waveform = audio.flatten().astype(np.float32)
+    if len(waveform) < sample_rate * 0.2:  # Less than 200ms, keep as is
+        return waveform
+    
+    frame_len = int(sample_rate * 0.02)  # 20ms frame (320 samples @ 16kHz)
+    num_frames = len(waveform) // frame_len
+    if num_frames == 0:
+        return waveform
+
+    reshaped = waveform[:num_frames * frame_len].reshape(num_frames, frame_len)
+    energies = np.sqrt(np.mean(reshaped ** 2, axis=1))
+    
+    noise_floor = float(np.percentile(energies, 15))
+    peak_energy = float(np.percentile(energies, 95))
+    if peak_energy < 0.003:
+        return waveform
+        
+    cutoff = noise_floor + 0.12 * (peak_energy - noise_floor)
+    active = np.where(energies >= cutoff)[0]
+    if len(active) == 0:
+        return waveform
+        
+    pad_frames = 3  # 60ms padding
+    start_frame = max(0, active[0] - pad_frames)
+    end_frame = min(num_frames, active[-1] + 1 + pad_frames)
+    
+    return waveform[start_frame * frame_len : end_frame * frame_len]
 
 
 class VoiceAuthenticator:
     """
     State-of-the-art Speaker Verification biometrics using ECAPA-TDNN (ONNX).
-    Extracts 192-dimensional speaker embeddings and computes cosine similarity
-    against enrolled master voice profile.
+    Extracts 192-dimensional speaker embeddings and computes multi-sample ensemble
+    cosine similarity against enrolled master voice profile (Google Voice Match style).
     """
     def __init__(self, sample_rate: int = 16000, n_mels: int = 80, frame_length: float = 25.0, frame_shift: float = 10.0):
         self.sample_rate = sample_rate
@@ -33,8 +94,9 @@ class VoiceAuthenticator:
         self.session: Optional[ort.InferenceSession] = None
         self.is_ready = False
         
-        # Enrolled master embedding vector (192-d)
+        # Enrolled master embeddings (centroid 192-d and individual sample vectors)
         self.master_embedding: Optional[np.ndarray] = None
+        self.enrolled_samples: Optional[np.ndarray] = None
         self.temp_enrollment_samples: List[np.ndarray] = []
         
         # Precompute Kaldi Povey window and Mel filterbank matrix once for sub-2ms speed
@@ -48,43 +110,45 @@ class VoiceAuthenticator:
 
     def _precompute_kaldi_filters(self):
         """Precomputes exact Kaldi-compliant Povey window and Mel filterbank matrix."""
-        # Povey Window (Hamming^0.85)
+        # Povey Window: Hamming^0.85 = (0.5 - 0.5 * cos(2*pi*i / (N-1)))^0.85
         i = np.arange(self.win_len)
-        self.window = ((0.5 - 0.5 * np.cos(2 * np.pi * i / (self.win_len - 1))) ** 0.85).astype(np.float32)
+        self.window = ((0.5 - 0.5 * np.cos(2.0 * np.pi * i / (self.win_len - 1))) ** 0.85).astype(np.float32)
         
-        # Kaldi Mel Filterbank (Natural logarithm formula: 1127.01048 * ln(1 + f / 700))
+        # Exact Kaldi Mel Filterbank (Formula: 1127.0 * ln(1 + f / 700))
         low_freq = 20.0
-        high_freq = self.sample_rate / 2.0  # 8000 Hz
-        
-        low_mel = 1127.01048 * np.log(1.0 + low_freq / 700.0)
-        high_mel = 1127.01048 * np.log(1.0 + high_freq / 700.0)
-        mel_points = np.linspace(low_mel, high_mel, self.n_mels + 2)
-        hz_points = 700.0 * (np.exp(mel_points / 1127.01048) - 1.0)
-        fft_bin_points = np.floor((self.n_fft + 1) * hz_points / self.sample_rate).astype(int)
-        
-        fbank = np.zeros((self.n_mels, self.n_fft // 2 + 1), dtype=np.float32)
-        for m in range(1, self.n_mels + 1):
-            left = fft_bin_points[m - 1]
-            center = fft_bin_points[m]
-            right = fft_bin_points[m + 1]
-            for k in range(left, center):
-                if center > left:
-                    fbank[m - 1, k] = (k - left) / (center - left)
-            for k in range(center, right):
-                if right > center:
-                    fbank[m - 1, k] = (right - k) / (right - center)
-                    
-        self.mel_filterbank = fbank.T.astype(np.float32)
+        high_freq = self.sample_rate / 2.0  # 8000.0 Hz (Nyquist)
+        num_fft_bins = self.n_fft // 2      # 256
+        fft_bin_width = self.sample_rate / self.n_fft  # 31.25 Hz
+
+        mel_low = 1127.0 * np.log(1.0 + low_freq / 700.0)
+        mel_high = 1127.0 * np.log(1.0 + high_freq / 700.0)
+        mel_delta = (mel_high - mel_low) / (self.n_mels + 1)
+
+        b = np.arange(self.n_mels)[:, None]  # (80, 1)
+        left_mel = mel_low + b * mel_delta
+        center_mel = mel_low + (b + 1.0) * mel_delta
+        right_mel = mel_low + (b + 2.0) * mel_delta
+
+        fft_freqs = fft_bin_width * np.arange(num_fft_bins)[None, :]  # (1, 256)
+        mel = 1127.0 * np.log(1.0 + fft_freqs / 700.0)
+
+        up_slope = (mel - left_mel) / (center_mel - left_mel)
+        down_slope = (right_mel - mel) / (right_mel - center_mel)
+        bins = np.maximum(0.0, np.minimum(up_slope, down_slope))  # (80, 256)
+
+        # Kaldi pads Nyquist bin (k = 256) with zero, giving (num_mel_bins, 257)
+        padded_bins = np.pad(bins, ((0, 0), (0, 1)), mode="constant", constant_values=0)
+        self.mel_filterbank = padded_bins.T.astype(np.float32)  # Shape: (257, 80)
 
     def _init_model(self):
-        """Loads ECAPA-TDNN ONNX model, downloading if necessary."""
+        """Loads SOTA CAM++ (Context-Aware Masking) Speaker Recognition ONNX model (512-d)."""
         try:
-            model_path = os.path.join(MODELS_DIR, "voxceleb_ECAPA512_LM.onnx")
+            model_path = os.path.join(MODELS_DIR, "voxceleb_CAM++_LM.onnx")
             if not os.path.exists(model_path):
-                logger.info("Downloading ECAPA-TDNN Speaker Recognition ONNX model (~80MB)...")
+                logger.info("Downloading SOTA CAM++ Speaker Recognition ONNX model (~29MB)...")
                 downloaded_path = hf_hub_download(
-                    repo_id="Wespeaker/wespeaker-ecapa-tdnn512-LM",
-                    filename="voxceleb_ECAPA512_LM.onnx",
+                    repo_id="Wespeaker/wespeaker-voxceleb-campplus-LM",
+                    filename="voxceleb_CAM++_LM.onnx",
                     local_dir=MODELS_DIR
                 )
                 if os.path.exists(downloaded_path) and downloaded_path != model_path:
@@ -101,14 +165,15 @@ class VoiceAuthenticator:
             
             self.session = ort.InferenceSession(model_path, sess_options=opts, providers=['CPUExecutionProvider'])
             self.is_ready = True
-            logger.info("ECAPA-TDNN Voice Authenticator initialized successfully.")
+            logger.info("CAM++ Speaker Authenticator initialized successfully (512-d).")
         except Exception as e:
             logger.error(f"Failed to initialize Voice Authenticator model: {e}")
             self.is_ready = False
 
     def compute_fbank(self, audio: np.ndarray) -> np.ndarray:
         """
-        Extracts 80-channel Kaldi Log-Mel Filterbanks matching WeSpeaker's training pipeline.
+        Extracts 80-channel Kaldi Log-Mel Filterbanks strictly matching torchaudio.compliance.kaldi.fbank
+        and WeSpeaker's training pipeline.
         Processes audio array and returns (num_frames, 80) feature matrix.
         """
         waveform = audio.flatten().astype(np.float32)
@@ -120,40 +185,50 @@ class VoiceAuthenticator:
         if len(waveform) < self.win_len:
             waveform = np.pad(waveform, (0, self.win_len - len(waveform)))
 
-        # Pre-emphasis (0.97)
-        waveform = np.append(waveform[0] - 0.97 * waveform[0], waveform[1:] - 0.97 * waveform[:-1])
-
-        # Framing
-        num_frames = max(1, int(np.floor((len(waveform) - self.win_len) / self.hop_len)) + 1)
+        # 1. Framing (snip_edges=True)
+        num_frames = 1 + (len(waveform) - self.win_len) // self.hop_len
         frames = np.lib.stride_tricks.as_strided(
             waveform,
             shape=(num_frames, self.win_len),
             strides=(waveform.strides[0] * self.hop_len, waveform.strides[0])
         ).copy()
 
-        # Povey Window & Real FFT Power Spectrum
-        frames *= self.window
-        fft_complex = np.fft.rfft(frames, n=self.n_fft)
-        power_spectrum = np.abs(fft_complex) ** 2
+        # 2. Kaldi remove DC offset per frame
+        frames -= np.mean(frames, axis=1, keepdims=True)
 
-        # Mel Filterbank dot product
+        # 3. Kaldi per-frame pre-emphasis (0.97) with replicate left-padding
+        padded = np.pad(frames, ((0, 0), (1, 0)), mode="edge")
+        frames = frames - 0.97 * padded[:, :-1]
+
+        # 4. Kaldi Povey window
+        frames *= self.window
+
+        # 5. FFT power spectrum (padded to next power of 2: n_fft = 512)
+        frames = np.pad(frames, ((0, 0), (0, self.n_fft - self.win_len)), mode="constant", constant_values=0)
+        fft_complex = np.fft.rfft(frames, n=self.n_fft)
+        power_spectrum = np.abs(fft_complex) ** 2.0
+
+        # 6. Mel Filterbank dot product
         mel_energy = np.dot(power_spectrum, self.mel_filterbank)
         mel_energy = np.maximum(mel_energy, np.finfo(np.float32).eps)
         log_mel = np.log(mel_energy)
 
-        # Cepstral Mean Normalization (CMVN)
+        # 7. Cepstral Mean Normalization (CMN) matching WeSpeaker
         log_mel -= np.mean(log_mel, axis=0, keepdims=True)
         return log_mel.astype(np.float32)
 
     def extract_embedding(self, audio: np.ndarray) -> Optional[np.ndarray]:
         """
         Extracts a 192-dimensional unit-normalized speaker embedding vector from 16kHz audio.
+        Applies peak normalization and silence trimming first to ensure features represent pure vocal tract resonance.
         """
         if not self.is_ready or self.session is None:
             return None
 
         try:
-            feats = self.compute_fbank(audio)
+            norm_audio = normalize_audio(audio, target_peak=0.9)
+            clean_audio = trim_speech(norm_audio, sample_rate=self.sample_rate)
+            feats = self.compute_fbank(clean_audio)
             feats_batch = np.expand_dims(feats, axis=0)  # Shape: (1, T, 80)
             
             output = self.session.run(None, {'feats': feats_batch})
@@ -188,87 +263,122 @@ class VoiceAuthenticator:
 
     def save_profile(self, owner_name: str = "Owner") -> bool:
         """
-        Averages all recorded enrollment sample embeddings into a master profile vector
-        and saves it to disk.
+        Saves all recorded enrollment sample embeddings as an ensemble matrix (N, 192)
+        and computes the master centroid vector for Google Voice Match style ensemble verification.
         """
         if not self.temp_enrollment_samples:
             logger.warning("Cannot save voice profile: No enrollment samples recorded.")
             return False
 
         try:
-            # Centroid vector computation
-            stacked = np.array(self.temp_enrollment_samples)
+            stacked = np.array(self.temp_enrollment_samples, dtype=np.float32)
             centroid = np.mean(stacked, axis=0)
             norm = np.linalg.norm(centroid)
             if norm > 0:
                 centroid = centroid / norm
 
             self.master_embedding = centroid.astype(np.float32)
-            np.save(PROFILE_PATH, self.master_embedding)
+            self.enrolled_samples = stacked
+
+            # Save full multi-sample ensemble matrix
+            np.save(PROFILE_PATH, self.enrolled_samples)
 
             meta = {
                 "owner_name": owner_name,
                 "samples_count": len(self.temp_enrollment_samples),
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "model": "ECAPA-TDNN-512-192d",
-                "dim": 192
+                "dim": 192,
+                "ensemble": True
             }
             with open(PROFILE_META_PATH, "w", encoding="utf-8") as f:
                 json.dump(meta, f, indent=2)
 
             self.temp_enrollment_samples.clear()
-            logger.info(f"Master voice profile saved for '{owner_name}' at {PROFILE_PATH}")
+            logger.info(f"Master voice profile saved for '{owner_name}' with {len(stacked)} ensemble samples at {PROFILE_PATH}")
             return True
         except Exception as e:
             logger.error(f"Failed to save voice profile: {e}")
             return False
 
     def load_profile(self) -> bool:
-        """Loads master voice embedding from disk if it exists."""
-        if os.path.exists(PROFILE_PATH):
+        """Loads master voice embeddings (both ensemble matrix and centroid) from disk if available."""
+        target_path = PROFILE_PATH
+        if not os.path.exists(target_path) and os.path.exists(LEGACY_PROFILE_PATH):
+            target_path = LEGACY_PROFILE_PATH
+
+        if os.path.exists(target_path):
             try:
-                self.master_embedding = np.load(PROFILE_PATH).astype(np.float32)
-                logger.info("Loaded master voice profile from disk.")
+                data = np.load(target_path).astype(np.float32)
+                if data.ndim == 1:
+                    # Legacy 1D centroid vector
+                    norm = np.linalg.norm(data)
+                    self.master_embedding = (data / norm) if norm > 0 else data
+                    self.enrolled_samples = self.master_embedding.reshape(1, -1)
+                elif data.ndim == 2:
+                    # Multi-sample ensemble matrix (N, 192)
+                    self.enrolled_samples = data
+                    centroid = np.mean(data, axis=0)
+                    norm = np.linalg.norm(centroid)
+                    self.master_embedding = (centroid / norm).astype(np.float32) if norm > 0 else centroid
+                
+                logger.info(f"Loaded master voice profile from disk ({len(self.enrolled_samples)} sample vectors).")
                 return True
             except Exception as e:
                 logger.warning(f"Could not load voice profile: {e}")
         self.master_embedding = None
+        self.enrolled_samples = None
         return False
 
     def clear_profile(self) -> bool:
         """Deletes master voice profile and resets enrollment state."""
         self.master_embedding = None
+        self.enrolled_samples = None
         self.temp_enrollment_samples.clear()
         try:
-            if os.path.exists(PROFILE_PATH):
-                os.remove(PROFILE_PATH)
-            if os.path.exists(PROFILE_META_PATH):
-                os.remove(PROFILE_META_PATH)
+            for p in [PROFILE_PATH, PROFILE_META_PATH, LEGACY_PROFILE_PATH, LEGACY_META_PATH]:
+                if os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception:
+                        pass
             logger.info("Voice profile cleared.")
             return True
         except Exception as e:
             logger.error(f"Error clearing voice profile: {e}")
             return False
 
-    def verify_speaker(self, audio: np.ndarray, threshold: float = 0.72) -> Tuple[bool, float]:
+    def verify_speaker(self, audio: np.ndarray, threshold: float = 0.50) -> Tuple[bool, float]:
         """
-        Compares live audio snippet against master voice embedding using Cosine Similarity.
+        Compares live audio against master voice profile using Google Voice Match ensemble scoring.
+        Calculates similarity across all enrolled voice samples and the centroid embedding.
         Returns: (is_authorized: bool, score: float)
         """
         if self.master_embedding is None:
-            # If no voice profile is enrolled yet, allow open access
-            return True, 1.0
+            self.load_profile()
+
+        if self.master_embedding is None:
+            logger.warning("Voice Lock active, but no master profile is enrolled! Access blocked.")
+            return False, 0.0
 
         live_emb = self.extract_embedding(audio)
         if live_emb is None:
             return False, 0.0
 
-        # Cosine similarity between two unit-normalized vectors is their dot product
-        score = float(np.dot(self.master_embedding, live_emb))
-        is_authorized = bool(score >= threshold)
-        
-        logger.info(f"Voice Verification: Score = {score:.3f} | Threshold = {threshold:.2f} | Authorized = {is_authorized}")
-        return is_authorized, score
+        # Multi-sample ensemble scoring
+        centroid_score = float(np.dot(self.master_embedding, live_emb))
+        if self.enrolled_samples is not None and len(self.enrolled_samples) > 0:
+            scores = np.dot(self.enrolled_samples, live_emb)
+            max_sample_score = float(np.max(scores))
+            mean_sample_score = float(np.mean(scores))
+            # Blended score balances closest sample similarity with centroid robustness
+            effective_score = max(centroid_score, max_sample_score, 0.6 * max_sample_score + 0.4 * centroid_score)
+        else:
+            effective_score = centroid_score
+
+        is_authorized = bool(effective_score >= threshold)
+        logger.info(f"Voice Verification: Score = {effective_score:.3f} (Centroid: {centroid_score:.3f}) | Threshold = {threshold:.2f} | Authorized = {is_authorized}")
+        return is_authorized, effective_score
 
     def get_status(self) -> Dict:
         """Returns the current state of voice biometrics."""

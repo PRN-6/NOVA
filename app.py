@@ -69,7 +69,7 @@ def main() -> None:
         run_dashboard()
         return
 
-    from speech.streamer import SpeechStreamer
+    from speech.streamer import SpeechStreamer, set_speech_streamer
     from actions.executor import execute_system_command, execute_system_command_detailed
     from ui.manager import UIManager
     from server.remote_server import start_remote_server, stop_remote_server, get_remote_url
@@ -124,8 +124,9 @@ def main() -> None:
             )
             logger.info(f"📱 Mobile Web Remote listening at: {remote_url}")
 
-        # Initialize Audio Streamer
+        # Initialize Audio Streamer and register module-level singleton
         streamer = SpeechStreamer()
+        set_speech_streamer(streamer)
         ui_manager.set_streamer(streamer)
 
         # Run speech streamer in a dedicated worker thread
