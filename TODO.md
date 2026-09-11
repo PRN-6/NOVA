@@ -170,3 +170,7 @@ This document outlines the planned improvements, bug fixes, new plugins, and arc
 
 
 in the plugin of the whatsapp make a new window for it when they click the whatsapp plugin to configure it then can add their whatsapp contacts in the plugin so that the acuracy of the name when we say open whatsapp and send message to prinson it can detect the chat correctly can we do this?
+
+
+
+rerun issun after new voice
